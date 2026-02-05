@@ -1,43 +1,41 @@
-"""간단한 연결 테스트"""
-from sqlalchemy import create_engine
-import os
-from dotenv import load_dotenv
+# main.py
+from config.settings import sb
+from config.ollama_client import OllamaClient
 
-load_dotenv()
 
-print("🔍 간단 연결 테스트")
-print("=" * 60)
+def check_supabase():
+    print("=== Supabase EQP_STATE 확인 ===")
+    resp = sb.table("EQP_STATE").select("*").limit(5).execute()
+    print("row count:", len(resp.data))
+    for row in resp.data:
+        print(row)
 
-# 환경 변수 직접 읽기
-db_url = os.getenv("SUPABASE_DB_URL", "")
 
-if not db_url:
-    print("❌ SUPABASE_DB_URL이 설정되지 않았습니다!")
-else:
-    # 비밀번호 부분 가리기
-    parts = db_url.split(":")
-    if len(parts) >= 3:
-        masked = f"{parts[0]}:{parts[1]}:***@..."
-        print(f"📍 연결 문자열: {masked}")
-    
-    print()
-    print("⏳ 연결 시도 중...")
-    
-    try:
-        # 명시적으로 UTF-8 지정
-        engine = create_engine(
-            db_url,
-            connect_args={
-                "options": "-c client_encoding=utf8"
-            }
-        )
-        
-        with engine.connect() as conn:
-            print("✅ 연결 성공!")
-            
-    except Exception as e:
-        print(f"❌ 연결 실패: {e}")
-        print()
-        print("오류 타입:", type(e).__name__)
+def check_ollama_chatbot():
+    print("\n=== Ollama 챗봇 스타일 테스트 ===")
+    ollama = OllamaClient()
 
-print("=" * 60)
+    history: list[dict] = []
+
+    # 1번째 질문
+    user_msg = "안녕, 너는 어떤 역할이야?"
+    reply1 = ollama.chat(user_msg, history=history)
+    history.append({"role": "user", "content": user_msg})
+    history.append({"role": "assistant", "content": reply1})
+    print("Q1:", user_msg)
+    print("A1:", reply1)
+
+    # 2번째 질문
+    user_msg = "내가 만들고 있는 생산 KPI 에이전트는 어떤 구조가 좋을까? 한 줄로만 말해줘."
+    reply2 = ollama.chat(user_msg, history=history)
+    history.append({"role": "user", "content": user_msg})
+    history.append({"role": "assistant", "content": reply2})
+    print("\nQ2:", user_msg)
+    print("A2:", reply2)
+
+    ollama.close()
+
+
+if __name__ == "__main__":
+    check_supabase()
+    check_ollama_chatbot()
