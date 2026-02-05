@@ -4,8 +4,8 @@ from config.ollama_client import OllamaClient
 
 
 def check_supabase():
-    print("=== Supabase EQP_STATE 확인 ===")
-    resp = sb.table("EQP_STATE").select("*").limit(5).execute()
+    print("=== Supabase KPI_DAILY 확인 ===")
+    resp = sb.table("KPI_DAILY").select("*").limit(5).execute()
     print("row count:", len(resp.data))
     for row in resp.data:
         print(row)

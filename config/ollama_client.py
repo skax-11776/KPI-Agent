@@ -13,7 +13,7 @@ class OllamaClient:
     """
 
     def __init__(self) -> None:
-        # settings.py 에 있는 환경변수 사용
+        # settings.py에 있는 환경변수 사용
         self.base_url: str = settings.OLLAMA_BASE_URL.rstrip("/")
         self.model: str = settings.OLLAMA_MODEL
 
@@ -72,7 +72,7 @@ class OllamaClient:
         resp.raise_for_status()
         data = resp.json()
         message = data.get("message", {})
-        
+
         return message.get("content", "")
 
     def close(self) -> None:

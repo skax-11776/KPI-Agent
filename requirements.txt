@@ -16,6 +16,6 @@ pydantic>=2.7.4
 pydantic-settings>=2.1.0
 
 # Supabase
-supabase
+supabase>=2.0.0
 
 # pip install -r requirements.txt 시 패키지 설치

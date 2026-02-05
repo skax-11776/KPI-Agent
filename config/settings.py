@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.2:3b"
 
+
     def supabase(self) -> Client:
         """
         Supabase 클라이언트 생성
