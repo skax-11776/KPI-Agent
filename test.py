@@ -1,4 +1,3 @@
-# main.py
 from config.settings import sb
 from config.ollama_client import OllamaClient
 
