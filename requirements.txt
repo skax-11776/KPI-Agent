@@ -1,21 +1,21 @@
 # LangGraph
-langgraph==0.2.28
-langchain==0.3.1
+langgraph
+langchain
 
 # Database
-psycopg[binary]>=3.1,<4
-sqlalchemy==2.0.23
+psycopg[binary]
+sqlalchemy
 
 # Data
-pandas==2.1.4
-numpy==1.26.2
+pandas
+numpy
 
 # Utilities
-python-dotenv==1.0.0
-pydantic>=2.7.4
-pydantic-settings>=2.1.0
+python-dotenv
+pydantic
+pydantic-settings
 
 # Supabase
-supabase>=2.0.0
+supabase
 
 # pip install -r requirements.txt 시 패키지 설치

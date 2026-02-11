@@ -15,41 +15,42 @@ class AnalysisState(TypedDict):
     - Any : 아무 타입이나 가능(숫자, 문자열, 상관없음)
     - Optional : 값이 있을 수도 있고, None일 수도 있음
     """
-
     # 워크플로우 시작 입력 데이터(분석 대상 날짜)
     check_date : date
 
-    # 노드 1 : 알람 감지 결과(알람이 발생한 케이스들의 리스트)
+    # 노드 1 : 알람 감지(알람이 발생한 케이스들의 리스트)
     alarm_cases : List[Dict[str, Any]]
 
-    # 노드 2 : 데이터 조회 결과(Supabase에서 조회한 원본 데이터)
+    # 노드 2 : 데이터 조회(Supabase에서 조회한 원본 데이터)
     raw_data : Dict[str, List[Dict[str, Any]]]
 
-    # 노드 3 : 특정 추출 결과(원본 데이터에서 추출한 특징들로 장비별로 저장)
+    # 노드 3 : 특정 추출(원본 데이터를 가공/계산한 데이터)
     features : Dict[str, Dict[str, Any]]
 
-    # 노드 4 : 패턴 분석 결과(특징들에서 발견한 패턴 및 패턴 분석의 신뢰도, 분석 재시도 횟수)
+    # 노드 4 : 패턴 분석(특징들에서 발견한 패턴 및 패턴 분석의 신뢰도, 분석 재시도 횟수)
     patterns : Dict[str, Any]
     pattern_confidence : float
     pattern_retry_count : int
 
-    # 노드 5 : 영향도 분석 결과(영향 범위 및 영향도 분석 결과)
+    # 노드 5 : 원인 분석
+    root_cause: Dict[str, Any]
+
+    # 노드 6 : 영향도 분석 결과(영향 범위 및 영향도 분석 결과)
     impact_scope : str
     impact_analysis : Dict[str, Any]
     
-    # 노드 6 - 7 : 시나리오 생성 & 평가(LLM이 생성한 시나리오 및 점수 순으로 정렬)
-    # 추후 rag와 합치게 될 경우 RAG / RAG + LLM 고려
-    llm_scenarios : Optional[List[Dict[str, Any]]]
-    top_scenarios : List[Dict[str, Any]]
-    scenario_quality_score : float
+    # 노드 7 - 8 : 시나리오 생성 & 평가
+    llm_scenarios: Optional[List[Dict[str, Any]]]
+    top_scenarios: List[Dict[str, Any]]
+    scenario_quality_score: float
 
-    # 노드 8 : 관리자 선택한 시나리오(Human In Loop)
+    # 노드 9 : 관리자 선택한 시나리오(Human In Loop)
     selected_scenario : Optional[Dict[str, Any]]
 
-    # 노드 9 : 최종 분석 리포트 생성
+    # 노드 10 : 최종 분석 리포트 생성
     final_report : Optional[str]
 
-    # 노드 10 : 저장(RAG)
+    # 노드 11 : 저장(RAG)
     case_id : Optional[int]
 
 
@@ -71,9 +72,10 @@ def initial_state(check_date : date) -> AnalysisState:
         "patterns" : {},
         "pattern_confidence" : 0.0,
         "pattern_retry_count" : 0,
+        "root_cause" : {},
         "impact_scope" : "",
         "impact_analysis" : {},
-        "llm_scenarios" : [],
+        "llm_scenarios" : None,
         "top_scenarios" : [],
         "scenario_quality_score" : 0.0,
         "selected_scenario" : None,
