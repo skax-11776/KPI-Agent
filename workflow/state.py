@@ -18,24 +18,18 @@ class AnalysisState(TypedDict):
     # 워크플로우 시작 입력 데이터(분석 대상 날짜)
     check_date : date
 
-    # 노드 1 : 알람 감지(알람이 발생한 케이스들의 리스트)
+    # 노드 1 - 2 : 데이터 수집
     alarm_cases : List[Dict[str, Any]]
-
-    # 노드 2 : 데이터 조회(Supabase에서 조회한 원본 데이터)
     raw_data : Dict[str, List[Dict[str, Any]]]
 
-    # 노드 3 : 특정 추출(원본 데이터를 가공/계산한 데이터)
+    # 노드 3 - 4 : 데이터 분석
     features : Dict[str, Dict[str, Any]]
-
-    # 노드 4 : 패턴 분석(특징들에서 발견한 패턴 및 패턴 분석의 신뢰도, 분석 재시도 횟수)
     patterns : Dict[str, Any]
     pattern_confidence : float
     pattern_retry_count : int
 
-    # 노드 5 : 원인 분석
+    # 노드 5 : 원인/영향도 분석
     root_cause: Dict[str, Any]
-
-    # 노드 6 : 영향도 분석 결과(영향 범위 및 영향도 분석 결과)
     impact_scope : str
     impact_analysis : Dict[str, Any]
     
@@ -44,13 +38,11 @@ class AnalysisState(TypedDict):
     top_scenarios: List[Dict[str, Any]]
     scenario_quality_score: float
 
-    # 노드 9 : 관리자 선택한 시나리오(Human In Loop)
+    # 노드 9 : 관리자 선택
     selected_scenario : Optional[Dict[str, Any]]
 
     # 노드 10 : 최종 분석 리포트 생성
     final_report : Optional[str]
-
-    # 노드 11 : 저장(RAG)
     case_id : Optional[int]
 
 

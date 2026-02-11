@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     # Ollama LLM
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "llama3.2:3b"
+    OLLAMA_MODEL: str = "qwen3:4b-instruct"
 
 
     def supabase(self) -> Client:
