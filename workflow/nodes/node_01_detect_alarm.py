@@ -71,7 +71,7 @@ def detect_alarm(state : AnalysisState) -> AnalysisState:
         else:
             status = "미달"
         
-        print(f"- {case['eqp_id']} : {case['kpi_name']} {percent :.1f}% {status}")
+        print(f"\n- {case['eqp_id']} : {case['kpi_name']} {percent :.1f}% {status}\n")
 
 
     return {"alarm_cases" : alarm_cases}
@@ -192,9 +192,6 @@ if __name__ == "__main__":
         total_cases += len(day_cases)
 
         if day_cases:
-            print("\n[결과]")
-            print(f"알람 케이스 수 : {len(result['alarm_cases'])}")
-
             for i, case in enumerate(result['alarm_cases'], 1):
                 print(f"\n[케이스 {i}]")
                 print(f"- 설비 : {case['eqp_id']}")

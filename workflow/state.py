@@ -23,7 +23,8 @@ class AnalysisState(TypedDict):
 
     # 노드 1 - 2 : 데이터 수집
     alarm_cases : List[Dict[str, Any]]
-    raw_data : Dict[str, List[Dict[str, Any]]]
+    common_data : Dict[str, List[Dict[str, Any]]]
+    specific_data : Dict[str, List[Dict[str, Any]]]
 
     # 노드 3 - 4 : 데이터 분석
     features : Dict[str, Dict[str, Any]]
@@ -68,7 +69,8 @@ def initial_state(start_date : date, end_date : date, check_date : date) -> Anal
         "check_date" : check_date,
 
         "alarm_cases" : [],
-        "raw_data" : {},
+        "common_data" : {},
+        "specific_data" : {},
 
         "features" : {},
         "patterns" : {},
