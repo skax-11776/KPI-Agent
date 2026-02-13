@@ -1,0 +1,24 @@
+# AI/LLM 관련
+langgraph==0.2.34
+langchain==0.3.7
+langchain-community==0.3.5
+langchain-aws==0.2.6
+
+# AWS Bedrock
+boto3==1.35.36
+botocore==1.35.36
+
+# Vector DB
+chromadb==0.5.15
+
+# Database
+supabase==2.9.1
+psycopg2-binary==2.9.9
+
+# 유틸리티
+python-dotenv==1.0.1
+pydantic==2.9.2
+
+# 개발 도구
+pytest==8.3.3
+black==24.10.0
