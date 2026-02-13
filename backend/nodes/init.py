@@ -13,10 +13,13 @@ LangGraph 노드 패키지
 9. node_9_persist_report: 리포트 저장
 """
 
-from .node_1_input_router import node_1_input_router, extract_alarm_info
+from .node_1_input_router import node_1_input_router
+from .node_2_load_alarm_kpi import node_2_load_alarm_kpi
 
 __all__ = [
     # Node 1
     'node_1_input_router',
-    'extract_alarm_info',
+    
+    # Node 2
+    'node_2_load_alarm_kpi',
 ]
