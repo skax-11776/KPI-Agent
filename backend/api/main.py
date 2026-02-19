@@ -81,7 +81,11 @@ async def root():
         "health": "/health"
     }
 
-
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "backend.api.main:app",  # 문자열로 전달
+        host="0.0.0.0",
+        port=8000,
+        reload=True
+    )
