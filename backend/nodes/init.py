@@ -13,14 +13,20 @@ LangGraph 노드 패키지
 9. node_9_persist_report: 리포트 저장
 """
 
+"""
+LangGraph 노드 패키지
+"""
+
 from .node_1_input_router import node_1_input_router
 from .node_2_load_alarm_kpi import node_2_load_alarm_kpi
 from .node_3_context_fetch import node_3_context_fetch
 from .node_6_root_cause_analysis import node_6_root_cause_analysis
+from .node_7_human_choice import node_7_human_choice
 
 __all__ = [
     'node_1_input_router',
     'node_2_load_alarm_kpi',
     'node_3_context_fetch',
     'node_6_root_cause_analysis',
+    'node_7_human_choice',
 ]
