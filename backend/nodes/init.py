@@ -22,6 +22,7 @@ from .node_2_load_alarm_kpi import node_2_load_alarm_kpi
 from .node_3_context_fetch import node_3_context_fetch
 from .node_6_root_cause_analysis import node_6_root_cause_analysis
 from .node_7_human_choice import node_7_human_choice
+from .node_8_report_writer import node_8_report_writer
 
 __all__ = [
     'node_1_input_router',
@@ -29,4 +30,5 @@ __all__ = [
     'node_3_context_fetch',
     'node_6_root_cause_analysis',
     'node_7_human_choice',
+    'node_8_report_writer',
 ]
