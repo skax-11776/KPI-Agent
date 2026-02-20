@@ -8,7 +8,6 @@ import KpiTrendChart from '../components/KpiTrendChart';
 import AlarmFrequencyChart from '../components/AlarmFrequencyChart';
 
 const DashboardOverview: React.FC = () => {
-  // 과거 7일 데이터
   const kpiTrendData = [
     { date: '01-25', oee_v: 65.2, oee_t: 70, thp_v: 245, thp_t: 250 },
     { date: '01-26', oee_v: 68.5, oee_t: 70, thp_v: 240, thp_t: 250 },
@@ -31,9 +30,9 @@ const DashboardOverview: React.FC = () => {
     <div>
       {/* 헤더 정보 */}
       <div className="card" style={{ marginBottom: '20px' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           padding: '10px'
         }}>
@@ -41,7 +40,7 @@ const DashboardOverview: React.FC = () => {
             <div style={{ fontSize: '14px', opacity: 0.7, marginBottom: '4px' }}>
               시스템 상태
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 700 }}>
+            <div style={{ fontSize: '20px', fontWeight: 700, color: '#22c55e' }}>
               ● OPERATIONAL
             </div>
           </div>
@@ -71,8 +70,7 @@ const DashboardOverview: React.FC = () => {
       <div className="card" style={{ marginTop: '30px' }}>
         <div className="card-header">
           <h2 className="card-title">
-            <span>📊</span>
-            주간 KPI 트렌드 (최근 7일)
+            <span>📊</span> 주간 KPI 트렌드 (최근 7일)
           </h2>
         </div>
         <div className="card-body">
@@ -81,11 +79,10 @@ const DashboardOverview: React.FC = () => {
       </div>
 
       {/* 알람 빈도 */}
-      <div className="card">
+      <div className="card" style={{ marginTop: '30px' }}>
         <div className="card-header">
           <h2 className="card-title">
-            <span>⚠️</span>
-            KPI별 알람 발생 통계
+            <span>🔔</span> KPI별 알람 발생 통계
           </h2>
         </div>
         <div className="card-body">

@@ -1,7 +1,3 @@
-/**
- * 사이드바 네비게이션
- */
-
 import React from 'react';
 
 interface SidebarProps {
@@ -10,13 +6,6 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
-  const navItems = [
-    { id: 'dashboard', icon: '📊', label: '대시보드' },
-    { id: 'alarm', icon: '🚨', label: '알람 모니터링' },
-    { id: 'chatbot', icon: '💬', label: 'AI 챗봇' },
-    { id: 'database', icon: '📊', label: '데이터베이스' },
-  ];
-
   return (
     <div className="sidebar">
       <div className="sidebar-header">
@@ -24,21 +13,35 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map((item) => (
-          <div
-            key={item.id}
-            className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
-            onClick={() => onNavigate(item.id)}
-          >
-            <span className="nav-icon">{item.icon}</span>
-            <span>{item.label}</span>
-          </div>
-        ))}
+        <div
+          className={`nav-item ${currentPage === 'dashboard' ? 'active' : ''}`}
+          onClick={() => onNavigate('dashboard')}
+        >
+          대시보드
+        </div>
+        <div
+          className={`nav-item ${currentPage === 'alarm' ? 'active' : ''}`}
+          onClick={() => onNavigate('alarm')}
+        >
+          알람 모니터링
+        </div>
+        <div
+          className={`nav-item ${currentPage === 'chatbot' ? 'active' : ''}`}
+          onClick={() => onNavigate('chatbot')}
+        >
+          AI 챗봇
+        </div>
+        <div
+          className={`nav-item ${currentPage === 'database' ? 'active' : ''}`}
+          onClick={() => onNavigate('database')}
+        >
+          데이터베이스
+        </div>
       </nav>
 
-      <div style={{ padding: '20px', borderTop: '1px solid #334155', fontSize: '12px', color: '#64748b' }}>
-        <p>Powered by</p>
-        <p style={{ fontWeight: 600, color: '#94a3b8' }}>AWS Bedrock & LangGraph</p>
+      <div style={{ padding: '20px', borderTop: '1px solid #e0e0e0', fontSize: '12px', color: '#999' }}>
+        <div>Powered by</div>
+        <div style={{ fontWeight: 600, color: '#666' }}>AWS Bedrock & LangGraph</div>
       </div>
     </div>
   );
