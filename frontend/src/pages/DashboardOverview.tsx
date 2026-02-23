@@ -9,12 +9,12 @@ import AlarmFrequencyChart from '../components/AlarmFrequencyChart';
 
 const DashboardOverview: React.FC = () => {
   const kpiTrendData = [
-    { date: '01-25', oee_v: 65.2, oee_t: 70, thp_v: 245, thp_t: 250 },
-    { date: '01-26', oee_v: 68.5, oee_t: 70, thp_v: 240, thp_t: 250 },
+    { date: '01-25', oee_v: 72.5, oee_t: 70, thp_v: 245, thp_t: 250 },
+    { date: '01-26', oee_v: 74.1, oee_t: 70, thp_v: 240, thp_t: 250 },
     { date: '01-27', oee_v: 71.6, oee_t: 70, thp_v: 235, thp_t: 250 },
-    { date: '01-28', oee_v: 69.0, oee_t: 70, thp_v: 240, thp_t: 250 },
+    { date: '01-28', oee_v: 73.8, oee_t: 70, thp_v: 240, thp_t: 250 },
     { date: '01-29', oee_v: 72.2, oee_t: 70, thp_v: 230, thp_t: 250 },
-    { date: '01-30', oee_v: 65.2, oee_t: 70, thp_v: 245, thp_t: 250 },
+    { date: '01-30', oee_v: 71.0, oee_t: 70, thp_v: 245, thp_t: 250 },
     { date: '01-31', oee_v: 76.4, oee_t: 70, thp_v: 227, thp_t: 250 },
   ];
 

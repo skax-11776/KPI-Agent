@@ -11,6 +11,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
 
@@ -25,11 +26,18 @@ interface KpiTrendChartProps {
 }
 
 const KpiTrendChart: React.FC<KpiTrendChartProps> = ({ data }) => {
+  // 달성률(%) 변환: OEE는 실제/목표, THP도 실제/목표 × 100
+  const rateData = data.map(d => ({
+    date: d.date,
+    oee_rate: Math.round(d.oee_v / d.oee_t * 1000) / 10,
+    thp_rate: Math.round(d.thp_v / d.thp_t * 1000) / 10,
+  }));
+
   return (
     <div style={{ width: '100%', height: '400px' }}>
       <ResponsiveContainer>
         <LineChart
-          data={data}
+          data={rateData}
           margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 255, 65, 0.1)" />
@@ -39,12 +47,15 @@ const KpiTrendChart: React.FC<KpiTrendChartProps> = ({ data }) => {
             style={{ fontSize: '12px' }}
             tick={{ fill: 'rgba(0, 255, 65, 0.6)' }}
           />
-          <YAxis 
-            stroke="rgba(0, 255, 65, 0.5)" 
+          <YAxis
+            domain={[70, 120]}
+            tickFormatter={(v) => `${v}%`}
+            stroke="rgba(0, 255, 65, 0.5)"
             style={{ fontSize: '12px' }}
             tick={{ fill: 'rgba(0, 255, 65, 0.6)' }}
           />
           <Tooltip
+            formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(1)}%`] : ['N/A']}
             contentStyle={{
               backgroundColor: 'rgba(0, 0, 0, 0.95)',
               border: '2px solid #00ff41',
@@ -56,39 +67,28 @@ const KpiTrendChart: React.FC<KpiTrendChartProps> = ({ data }) => {
           <Legend
             wrapperStyle={{ color: '#00ff41', fontSize: '13px' }}
           />
+          <ReferenceLine
+            y={100}
+            stroke="#ff4444"
+            strokeDasharray="6 3"
+            strokeWidth={2}
+            label={{ value: '목표 100%', fill: '#ff4444', fontSize: 11, position: 'right' }}
+          />
           <Line
             type="monotone"
-            dataKey="oee_v"
+            dataKey="oee_rate"
             stroke="#00ff41"
-            name="OEE 실제"
+            name="OEE 달성률"
             strokeWidth={2}
             dot={{ fill: '#00ff41', r: 4 }}
           />
           <Line
             type="monotone"
-            dataKey="oee_t"
-            stroke="rgba(0, 255, 65, 0.5)"
-            name="OEE 목표"
-            strokeWidth={2}
-            strokeDasharray="5 5"
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="thp_v"
+            dataKey="thp_rate"
             stroke="#00d9ff"
-            name="THP 실제"
+            name="THP 달성률"
             strokeWidth={2}
             dot={{ fill: '#00d9ff', r: 4 }}
-          />
-          <Line
-            type="monotone"
-            dataKey="thp_t"
-            stroke="rgba(0, 217, 255, 0.5)"
-            name="THP 목표"
-            strokeWidth={2}
-            strokeDasharray="5 5"
-            dot={false}
           />
         </LineChart>
       </ResponsiveContainer>

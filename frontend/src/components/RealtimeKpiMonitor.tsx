@@ -45,8 +45,8 @@ const RealtimeKpiMonitor: React.FC = () => {
       const time = new Date(now.getTime() - i * 2000);
       initialData.push({
         time: time.toLocaleTimeString('ko-KR'),
-        oee: 65 + Math.random() * 10,
-        thp: 220 + Math.random() * 30,
+        oee: 70 + Math.random() * 10,
+        thp: 215 + Math.random() * 20,
         tat: 2.0 + Math.random() * 1.0,
         wip: 240 + Math.random() * 20,
       });
@@ -69,10 +69,10 @@ useEffect(() => {
       const lastData = newData[newData.length - 1];
       
       // 새로운 데이터 포인트 생성 (이전 값 기준 랜덤 변동)
-      const newOee = Math.max(60, Math.min(85, lastData.oee + (Math.random() - 0.5) * 2));
-      const newThp = Math.max(200, Math.min(260, lastData.thp + (Math.random() - 0.5) * 5));
-      const newTat = Math.max(1.5, Math.min(3.5, lastData.tat + (Math.random() - 0.5) * 0.2));
-      const newWip = Math.max(220, Math.min(270, lastData.wip + (Math.random() - 0.5) * 4));
+      const newOee = Math.max(70, Math.min(82, lastData.oee + (Math.random() - 0.5) * 2));
+      const newThp = Math.max(215, Math.min(235, lastData.thp + (Math.random() - 0.5) * 5));
+      const newTat = Math.max(1.5, Math.min(3.0, lastData.tat + (Math.random() - 0.5) * 0.2));
+      const newWip = Math.max(240, Math.min(260, lastData.wip + (Math.random() - 0.5) * 4));
       
       const newPoint: KpiData = {
         time: new Date().toLocaleTimeString('ko-KR'),

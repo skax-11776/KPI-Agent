@@ -443,7 +443,7 @@ export default function App() {
   // 챗봇
   const [msgs,      setMsgs]      = useState<ChatMessage[]>([{
     role:"assistant",
-    content:"안녕하세요. KPI Monitoring Agent입니다.\n\n🤖 LLM: AWS Bedrock (Claude Haiku) 연동\n📚 RAG: ChromaDB (PDF 11건 인덱싱)\n📊 데이터: 2026-01-20 ~ 2026-01-31 알람 12건\n\n.env에 REACT_APP_ANTHROPIC_API_KEY 설정 또는\n백엔드 서버(main.py) 실행 시 실제 LLM 응답이 활성화됩니다.",
+    content:"안녕하세요. KPI Monitoring Agent입니다.\n\n- LLM: AWS Bedrock (Claude Haiku) 연동\n- RAG: ChromaDB (PDF 11건 인덱싱)\n- 데이터: 2026-01-20 ~ 2026-01-31 알람 12건",
     timestamp:nowTime(), source:"llm",
   }]);
   const [input,     setInput]     = useState("");
@@ -597,13 +597,12 @@ export default function App() {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>실시간 KPI 트렌드</div>
-                  <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>최근 60초 슬라이딩 윈도우 · 0.5초 업데이트</div>
+                  <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}></div>
                 </div>
                 <div style={{display:"flex",gap:14,alignItems:"center"}}>
                   {[{c:"#2563eb",l:"OEE"},{c:"#10b981",l:"THP"},{c:"#f59e0b",l:"TAT"},{c:"#8b5cf6",l:"WIP"}].map(({c,l})=>(
                     <div key={l} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:"50%",background:c}}/><span style={{fontSize:11,color:"#6b7280"}}>{l}</span></div>
                   ))}
-                  <div style={{display:"flex",alignItems:"center",gap:4,fontSize:11,fontWeight:600,color:"#dc2626"}}><div style={{width:7,height:7,borderRadius:"50%",background:"#dc2626"}}/>LIVE</div>
                 </div>
               </div>
               <div ref={chartRef} style={{width:"100%",height:200}}><RealtimeChart data={rt} width={chartW} height={200}/></div>
