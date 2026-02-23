@@ -428,10 +428,217 @@ function ReportPanel({report,onClose}:{report:Report;onClose:()=>void}) {
     </div>
   );
 }
+const API_BASE = "http://localhost:8000";
 
+// 백엔드에서 PDF 목록 가져오기
+async function fetchReportList(): Promise<{filename:string;size:number;created_at:string}[]> {
+  try {
+    const res = await fetch(`${API_BASE}/api/reports`);
+    const data = await res.json();
+    return data.reports || [];
+  } catch {
+    return []; // 백엔드 미실행 시 빈 배열
+  }
+}
+
+// PDF 저장 API 호출
+async function saveReportToPdf(filename: string, content: string, metadata: Record<string,string>): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/api/reports/save`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ filename, content, metadata }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// PDF 삭제 API 호출
+async function deleteReportFile(filename: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/api/reports/${filename}`, { method: "DELETE" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ← 여기서부터
+function AnalyticsPage({reports}: {reports: any[]}) {
+  const [kpiTab, setKpiTab] = React.useState<string>("OEE");
+  
+  const kpiCount: Record<string,number> = {OEE:0,THP:0,TAT:0,WIP_EXCEED:0,WIP_SHORTAGE:0};
+  reports.forEach(r => { kpiCount[r.alarm_kpi] = (kpiCount[r.alarm_kpi]||0)+1; });
+  const COLORS: Record<string,string> = {OEE:"#2563eb",THP:"#059669",TAT:"#d97706",WIP_EXCEED:"#dc2626",WIP_SHORTAGE:"#7c3aed"};
+
+  // KPI별 평균 달성률 계산
+  const avgRate = (kpi: string) => {
+    const filtered = reports.filter(r => r.alarm_kpi === kpi);
+    if(!filtered.length) return 0;
+    return filtered.reduce((sum,r) => {
+      const rate = kpi==="TAT"||kpi==="WIP_EXCEED"
+        ? (r.target_num/r.actual_num)*100
+        : (r.actual_num/r.target_num)*100;
+      return sum + Math.min(rate, 100);
+    }, 0) / filtered.length;
+  };
+
+  const kpiMeta = [
+    {key:"OEE", label:"OEE", unit:"%", target:"70%"},
+    {key:"THP", label:"THP", unit:"UPH", target:"250"},
+    {key:"TAT", label:"TAT", unit:"h", target:"<3.5h"},
+    {key:"WIP_EXCEED", label:"WIP 초과", unit:"EA", target:"500EA"},
+    {key:"WIP_SHORTAGE", label:"WIP 부족", unit:"EA", target:"500EA"},
+  ];
+
+  const selectedReports = reports.filter(r => r.alarm_kpi === kpiTab);
+
+  return (
+    <div style={{padding:"24px 32px"}}>
+      {/* 요약 카드 3개 */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:28}}>
+        {[
+          {label:"총 알람 건수", value:`${reports.length}건`, color:"#dc2626"},
+          {label:"알람 발생 장비", value:"12대", color:"#2563eb"},
+          {label:"전체 평균 달성률", value:`${(kpiMeta.reduce((s,k)=>s+avgRate(k.key),0)/kpiMeta.length).toFixed(1)}%`, color:"#059669"},
+        ].map(({label,value,color})=>(
+          <div key={label} style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"18px 20px"}}>
+            <div style={{fontSize:11,color:"#9ca3af",fontWeight:600,marginBottom:6}}>{label}</div>
+            <div style={{fontSize:28,fontWeight:800,color,fontFamily:"monospace"}}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* KPI별 평균 달성률 탭 */}
+      <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"20px 24px",marginBottom:20}}>
+        <div style={{fontSize:14,fontWeight:700,marginBottom:16}}>KPI별 평균 달성률</div>
+        {/* 탭 버튼 */}
+        <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap" as const}}>
+          {kpiMeta.map(({key,label})=>(
+            <button key={key} onClick={()=>setKpiTab(key)} style={{
+              padding:"6px 16px", borderRadius:8, border:"none", cursor:"pointer",
+              background: kpiTab===key ? COLORS[key] : "#f3f4f6",
+              color: kpiTab===key ? "#fff" : "#374151",
+              fontWeight: kpiTab===key ? 700 : 400, fontSize:13,
+            }}>{label}</button>
+          ))}
+        </div>
+        {/* 선택된 KPI 상세 */}
+        {kpiMeta.filter(k=>k.key===kpiTab).map(({key,label,unit,target})=>{
+          const rate = avgRate(key);
+          const color = COLORS[key];
+          return (
+            <div key={key}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:10}}>
+                <div>
+                  <span style={{fontSize:13,color:"#6b7280"}}>목표: {target} · 알람 {kpiCount[key]}건</span>
+                </div>
+                <span style={{fontSize:28,fontWeight:800,fontFamily:"monospace",color}}>{rate.toFixed(1)}%</span>
+              </div>
+              <div style={{height:14,background:"#f3f4f6",borderRadius:7,overflow:"hidden",marginBottom:20}}>
+                <div style={{width:`${rate}%`,height:"100%",background:color,borderRadius:7,transition:"width 0.5s"}}/>
+              </div>
+              {/* 해당 KPI 알람 목록 */}
+              {selectedReports.map((r,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 12px",borderRadius:8,background:"#f9fafb",marginBottom:6}}>
+                  <span style={{fontSize:11,fontFamily:"monospace",color:"#9ca3af",width:80,flexShrink:0}}>{r.date}</span>
+                  <span style={{fontWeight:700,fontSize:12,width:50,flexShrink:0}}>{r.eqp_id}</span>
+                  <span style={{fontSize:11,color:"#6b7280",flex:1}}>{r.causes[0]}</span>
+                  <span style={{fontSize:12,fontFamily:"monospace",fontWeight:700,color,flexShrink:0}}>
+                    {r.actual_raw} / {r.target_raw}
+                  </span>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* KPI별 알람 빈도 바 차트 */}
+      <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"20px 24px",marginBottom:20}}>
+        <div style={{fontSize:14,fontWeight:700,marginBottom:18}}>KPI별 알람 발생 빈도</div>
+        {Object.entries(kpiCount).map(([kpi,count])=>(
+          <div key={kpi} style={{marginBottom:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+              <span style={{fontSize:12,fontWeight:600}}>{kpi}</span>
+              <span style={{fontSize:12,fontFamily:"monospace"}}>{count}건</span>
+            </div>
+            <div style={{height:10,background:"#f3f4f6",borderRadius:5,overflow:"hidden"}}>
+              <div style={{width:`${(count/reports.length)*100}%`,height:"100%",background:COLORS[kpi],borderRadius:5}}/>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 일별 알람 타임라인 */}
+      <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"20px 24px"}}>
+        <div style={{fontSize:14,fontWeight:700,marginBottom:16}}>일별 알람 타임라인</div>
+        {reports.map((r,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 12px",borderRadius:8,background:"#f9fafb",marginBottom:6}}>
+            <span style={{fontSize:11,fontFamily:"monospace",color:"#9ca3af",width:80,flexShrink:0}}>{r.date}</span>
+            <span style={{fontWeight:700,fontSize:12,width:50,flexShrink:0}}>{r.eqp_id}</span>
+            <span style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:4,background:COLORS[r.alarm_kpi]+"22",color:COLORS[r.alarm_kpi]}}>{r.alarm_kpi}</span>
+            <span style={{fontSize:11,color:"#6b7280",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.causes[0]}</span>
+            <span style={{fontSize:11,fontFamily:"monospace",color:"#dc2626",flexShrink:0}}>{r.diff_raw}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SettingsPage() {
+  const [thresholds, setThresholds] = React.useState({oee_min:70,thp_min:250,tat_max:3.5,wip_min:200,wip_max:300});
+  const [saved, setSaved] = React.useState(false);
+  return (
+    <div style={{padding:"24px 32px",maxWidth:600}}>
+      <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"24px 28px",marginBottom:20}}>
+        <div style={{fontSize:15,fontWeight:700,marginBottom:20}}>알람 임계값 설정</div>
+        {[
+          {key:"oee_min",label:"OEE 최소값 (%)",unit:"%"},
+          {key:"thp_min",label:"THP 최소값 (UPH)",unit:"UPH"},
+          {key:"tat_max",label:"TAT 최대값 (h)",unit:"h"},
+          {key:"wip_min",label:"WIP 최소값 (EA)",unit:"EA"},
+          {key:"wip_max",label:"WIP 최대값 (EA)",unit:"EA"},
+        ].map(({key,label,unit})=>(
+          <div key={key} style={{marginBottom:16}}>
+            <label style={{fontSize:13,fontWeight:600,color:"#374151",display:"block",marginBottom:6}}>{label}</label>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <input type="number" value={(thresholds as any)[key]}
+                onChange={e=>setThresholds(p=>({...p,[key]:Number(e.target.value)}))}
+                style={{flex:1,padding:"8px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,fontFamily:"monospace",outline:"none"}}/>
+              <span style={{fontSize:12,color:"#9ca3af",width:32}}>{unit}</span>
+            </div>
+          </div>
+        ))}
+        <button onClick={()=>{setSaved(true);setTimeout(()=>setSaved(false),2000);}}
+          style={{width:"100%",padding:"12px",borderRadius:8,border:"none",background:saved?"#22c55e":"#0f172a",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+          {saved?"✅ 저장되었습니다!":"설정 저장"}
+        </button>
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"20px 24px"}}>
+        <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>시스템 정보</div>
+        {[
+          {label:"백엔드 서버",value:"http://localhost:8000"},
+          {label:"LLM 모델",value:"AWS Bedrock / Claude Haiku"},
+          {label:"Vector DB",value:"ChromaDB · ./data/chromadb"},
+          {label:"관계형 DB",value:"Supabase PostgreSQL"},
+          {label:"보고서 폴더",value:"./backend/data/reports/"},
+        ].map(({label,value})=>(
+          <div key={label} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
+            <span style={{fontSize:13,color:"#374151"}}>{label}</span>
+            <span style={{fontSize:12,fontFamily:"monospace",color:"#6b7280"}}>{value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 // ────────────────────────── 메인 App ──────────────────────────
 export default function App() {
-  type Tab = "dashboard"|"alarms"|"chat"|"database";
+  type Tab = "dashboard"|"alarms"|"chat"|"database"|"analytics"|"settings";
   type DbTable = "kpi_daily"|"scenario_map"|"rcp_state"|"eqp_state"|"lot_state";
   type AlarmSub = "latest"|"history";
 
@@ -439,6 +646,22 @@ export default function App() {
   const [alarmSub,  setAlarmSub]      = useState<AlarmSub>("latest");
   const [dbTable,   setDbTable]       = useState<DbTable>("kpi_daily");
   const [selReport, setSelReport]     = useState<Report|null>(null);
+  const [latestSaved, setLatestSaved] = useState(false);
+  const [latestAlarmCount, setLatestAlarmCount] = useState(1);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [showRagModal, setShowRagModal] = useState(false);
+  const [showSavedToast, setShowSavedToast] = useState(false);
+  const [historyList, setHistoryList] = useState(REPORTS);
+  const [pdfFiles, setPdfFiles] = useState<{filename:string;size:number;created_at:string}[]>([]);
+
+// PDF 목록 로드 (컴포넌트 마운트 시 + 저장/삭제 후)
+useEffect(()=>{
+  fetchReportList().then(setPdfFiles);
+  const interval = setInterval(()=>{
+    fetchReportList().then(setPdfFiles);
+  }, 5000);  // 5초마다 폴더 스캔
+  return () => clearInterval(interval);
+}, []);
 
   // 챗봇
   const [msgs,      setMsgs]      = useState<ChatMessage[]>([{
@@ -469,11 +692,17 @@ export default function App() {
     return()=>clearInterval(iv);
   },[]);
 
+ 
   useEffect(()=>{
-    const el=chartRef.current;if(!el)return;
-    const ro=new ResizeObserver(e=>setChartW(e[0].contentRect.width));ro.observe(el);
-    return()=>ro.disconnect();
-  },[]);
+    const el = chartRef.current;
+    if (!el) return;
+    // 즉시 측정 (탭 전환 후 재렌더 시)
+    const w = el.getBoundingClientRect().width;
+    if (w > 0) setChartW(w);
+    const ro = new ResizeObserver(e => setChartW(e[0].contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [activeTab]); // ← activeTab 추가가 핵심!
 
   useEffect(()=>{ chatEnd.current?.scrollIntoView({behavior:"smooth"}); },[msgs]);
 
@@ -502,11 +731,13 @@ export default function App() {
   };
 
   const NAV_ITEMS = [
-    {id:"dashboard" as Tab, label:"Dashboard",    desc:"실시간 현황"},
-    {id:"alarms"    as Tab, label:"Alarm Center", desc:"최신·과거 알람"},
-    {id:"chat"      as Tab, label:"AI Assistant", desc:"LLM + RAG"},
-    {id:"database"  as Tab, label:"Database",     desc:"원본 데이터"},
-  ];
+  {id:"dashboard" as Tab, label:"Dashboard",    desc:"실시간 현황",    icon:"📊"},
+  {id:"alarms"    as Tab, label:"Alarm Center", desc:"최신·과거 알람", icon:"🔔"},
+  {id:"chat"      as Tab, label:"AI Assistant", desc:"LLM + RAG",     icon:"🤖"},
+  {id:"analytics" as Tab, label:"Analytics",    desc:"KPI 트렌드 분석",icon:"📈"},
+  {id:"database"  as Tab, label:"Database",     desc:"원본 데이터",    icon:"🗄️"},
+  {id:"settings"  as Tab, label:"Settings",     desc:"알람 설정",      icon:"⚙️"},
+];
 
   return(
     <div style={S.root}>
@@ -547,22 +778,47 @@ export default function App() {
       {/* ── MAIN ── */}
       <main style={S.main}>
         {/* 헤더 */}
-        <header style={S.header}>
-          <div>
-            <h1 style={S.pageTitle}>
-              {activeTab==="dashboard"?"Dashboard":activeTab==="alarms"?"Alarm Center":activeTab==="chat"?"AI Assistant":"Database"}
-            </h1>
-            <p style={S.pageSub}>
-              {activeTab==="dashboard"?"생산 KPI 실시간 모니터링 · 2026-01-20 ~ 2026-01-31":
-               activeTab==="alarms"?"최신 알람(2026-01-31) / 과거 이력 PDF 11건":
-               activeTab==="chat"?"AWS Bedrock Claude Haiku · RAG(ChromaDB) 기반 분석":
-               "Supabase PostgreSQL · 5개 테이블 원본 데이터"}
-            </p>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={S.dateChip}>2026. 01. 31</div>
-            <div style={S.alarmChip}>🔴 신규 알람 1건</div>
-          </div>
+        <header style={{...S.header, padding:"12px 32px"}}>
+  <div style={{display:"flex",alignItems:"center",gap:16}}>
+    <div>
+      <h1 style={S.pageTitle}>
+        {activeTab==="dashboard"?"📊 Dashboard":
+         activeTab==="alarms"?"🔔 Alarm Center":
+         activeTab==="chat"?"🤖 AI Assistant":
+         activeTab==="analytics"?"📈 Analytics":
+         activeTab==="settings"?"⚙️ Settings":"🗄️ Database"}
+      </h1>
+      <p style={S.pageSub}>
+        {activeTab==="dashboard"?"생산 KPI 실시간 모니터링 · 2026-01-20 ~ 2026-01-31":
+         activeTab==="alarms"?"최신 알람(2026-01-31) / 과거 이력 PDF 11건":
+         activeTab==="chat"?"AWS Bedrock Claude Haiku · RAG(ChromaDB) 기반 분석":
+         activeTab==="analytics"?"KPI 장기 트렌드 · 알람 패턴 분석":
+         activeTab==="settings"?"알람 임계값 · 알림 설정":"Supabase PostgreSQL · 5개 테이블"}
+      </p>
+    </div>
+  </div>
+  <div style={{display:"flex",alignItems:"center",gap:10}}>
+    
+    {[
+      {label:"OEE", val:`${kpi.oee.toFixed(1)}%`, bad:kpi.oee<70, color:"#2563eb"},
+      {label:"THP", val:String(kpi.thp),           bad:kpi.thp<228, color:"#059669"},
+      {label:"TAT", val:`${kpi.tat.toFixed(2)}h`,  bad:kpi.tat>3.5, color:"#d97706"},
+      {label:"WIP", val:String(kpi.wip),           bad:false,        color:"#7c3aed"},
+    ].map(({label,val,bad,color})=>(
+      <div key={label} style={{
+        padding:"5px 12px", borderRadius:8,
+        background: bad?"#fee2e2":"#f8fafc",
+        border:`1px solid ${bad?"#fecaca":"#e2e8f0"}`,
+        display:"flex", alignItems:"center", gap:6,
+      }}>
+        <span style={{fontSize:10,fontWeight:700,color:"#9ca3af"}}>{label}</span>
+        <span style={{fontSize:13,fontWeight:700,fontFamily:"monospace",color:bad?"#dc2626":color}}>{val}</span>
+        {bad && <span style={{width:6,height:6,borderRadius:"50%",background:"#dc2626",animation:"pulse 1s infinite"}}/>}
+      </div>
+    ))}
+    <div style={S.dateChip}>{new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false})}</div>
+    <div style={S.alarmChip}>🔴 신규 알람 1건</div>
+  </div>
         </header>
 
         {/* ═══ DASHBOARD ═══ */}
@@ -634,11 +890,11 @@ export default function App() {
             <div style={S.subTabBar}>
               <button style={{...S.subTab,...(alarmSub==="latest"?S.subTabOn:{})}} onClick={()=>setAlarmSub("latest")}>
                 최신 알람
-                <span style={{marginLeft:6,fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:alarmSub==="latest"?"#dc2626":"#fee2e2",color:alarmSub==="latest"?"#fff":"#991b1b"}}>1</span>
+                <span style={{marginLeft:6,fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:alarmSub==="latest"?"#dc2626":"#fee2e2",color:alarmSub==="latest"?"#fff":"#991b1b"}}>{latestAlarmCount}</span>
               </button>
               <button style={{...S.subTab,...(alarmSub==="history"?S.subTabOn:{})}} onClick={()=>setAlarmSub("history")}>
                 과거 이력 (PDF)
-                <span style={{marginLeft:6,fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:alarmSub==="history"?"#0f172a":"#e5e7eb",color:alarmSub==="history"?"#fff":"#374151"}}>11</span>
+                <span style={{marginLeft:6,fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:alarmSub==="history"?"#0f172a":"#e5e7eb",color:alarmSub==="history"?"#fff":"#374151"}}>{historyList.length}</span>
               </button>
             </div>
 
@@ -701,6 +957,32 @@ export default function App() {
                 ))}
               </div>
             )}
+                    
+                <div style={{borderTop:"1px solid #f3f4f6",paddingTop:16,marginTop:8,display:"flex",gap:12,alignItems:"center"}}>
+                  <button
+                    onClick={()=>setShowPdfModal(true)}
+                    style={{padding:"10px 22px",borderRadius:8,border:"none",background:"#2563eb",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}
+                  >
+                    📄 PDF 보고서 생성
+                  </button>
+                  {latestSaved&&<span style={{color:"#16a34a",fontWeight:600,fontSize:13}}>✅ RAG에 저장됨</span>}
+                  <button
+                    onClick={async ()=>{
+                    if(window.confirm("초기화하면 추가된 보고서 파일도 삭제됩니다. 계속하시겠습니까?")){
+                      // 추가된 파일만 삭제 (기존 11개 제외)
+                      if(latestSaved){
+                        await deleteReportFile("report_20260131_EQP12_THP.pdf");
+                      }
+                      setHistoryList(REPORTS);
+                      setLatestSaved(false);
+                      setLatestAlarmCount(1);
+                      fetchReportList().then(setPdfFiles); // 목록 갱신
+                    }
+                  }}
+                  >
+                    🔄 초기화
+                  </button>
+                </div>
 
             {/* 과거 이력 */}
             {alarmSub==="history"&&(
@@ -710,7 +992,7 @@ export default function App() {
                   <span style={{fontSize:13,color:"#4c1d95"}}>ChromaDB에 인덱싱된 PDF 리포트 11건 — 클릭 시 PDF 원본 내용을 확인할 수 있습니다</span>
                 </div>
                 <div style={S.alarmGrid}>
-                  {REPORTS.map((r,i)=>{
+                  {historyList.map((r,i)=>{
                     const meta=KPI_META[r.alarm_kpi]; const bad=isBad(r);
                     return(
                       <div key={i} style={{...S.card,borderLeft:`4px solid ${meta.color}`,cursor:"pointer"}} onClick={()=>setSelReport(r)}>
@@ -798,12 +1080,7 @@ export default function App() {
                 )}
                 <div ref={chatEnd}/>
               </div>
-              {/* API 키 안내 배너 */}
-              {(!process.env.REACT_APP_ANTHROPIC_API_KEY||!process.env.REACT_APP_ANTHROPIC_API_KEY.startsWith("sk-ant"))&&(
-                <div style={{margin:"0 28px 8px",padding:"8px 14px",background:"#fef9c3",border:"1px solid #fde047",borderRadius:7,fontSize:12,color:"#713f12"}}>
-                  💡 .env에 <code style={{fontFamily:"monospace",background:"#fef3c7",padding:"0 4px",borderRadius:3}}>REACT_APP_ANTHROPIC_API_KEY=sk-ant-...</code> 설정 시 실제 LLM 응답 활성화
-                </div>
-              )}
+              
               {/* 빠른 질문 */}
               <div style={{padding:"0 28px 10px",display:"flex",gap:7,flexWrap:"wrap" as const}}>
                 {["EQP12 최신 알람 원인은?","OEE 알람 패턴 분석해줘","어떤 장비가 가장 위험해?","WIP 알람 전체 현황은?","TAT 개선 방안 제시해줘"].map((s,i)=>(
@@ -1004,6 +1281,91 @@ export default function App() {
             )}
           </div>
         )}
+        {/* PDF 미리보기 모달 */}
+{showPdfModal&&(
+  <div onClick={()=>setShowPdfModal(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:12,padding:28,width:560,maxHeight:"80vh",overflowY:"auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
+        <h3 style={{margin:0,fontSize:16,fontWeight:700}}>📄 PDF 보고서 미리보기</h3>
+        <button onClick={()=>setShowPdfModal(false)} style={{border:"none",background:"none",fontSize:18,cursor:"pointer"}}>✕</button>
+      </div>
+      <pre style={{background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,padding:16,fontSize:11,fontFamily:"monospace",whiteSpace:"pre-wrap",lineHeight:1.8,marginBottom:16}}>
+{`════════════════════════════════
+  KPI 이상 분석 보고서
+════════════════════════════════
+장비: EQP12 | KPI: THP | 날짜: 2026-01-31
+목표: 250 | 실적: 227 | 차이: -23
+────────────────────────────────
+■ 근본 원인
+${LATEST_ALARM.causes.map((c,i)=>`${i+1}. ${c}`).join("\n")}
+
+■ 해결 시나리오
+${LATEST_ALARM.scenarios.map((s,i)=>`${i+1}. ${s}`).join("\n")}
+════════════════════════════════`}
+      </pre>
+      <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+        <button onClick={()=>setShowPdfModal(false)} style={{padding:"9px 18px",borderRadius:8,border:"1px solid #e5e7eb",background:"#fff",cursor:"pointer"}}>닫기</button>
+        <button
+          onClick={()=>{setShowPdfModal(false);setShowRagModal(true);}}
+          disabled={latestSaved}
+          style={{padding:"9px 20px",borderRadius:8,border:"none",background:latestSaved?"#9ca3af":"#22c55e",color:"#fff",fontWeight:700,cursor:latestSaved?"not-allowed":"pointer"}}
+        >{latestSaved?"이미 저장됨":"💾 RAG 저장"}</button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* RAG 확인 모달 */}
+{showRagModal&&(
+  <div onClick={()=>setShowRagModal(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:16,padding:32,width:420,textAlign:"center"}}>
+      <div style={{fontSize:40,marginBottom:12}}>🗄️</div>
+      <h3 style={{margin:"0 0 10px",fontSize:18,fontWeight:700}}>RAG DB에 저장할까요?</h3>
+      <p style={{fontSize:13,color:"#6b7280",marginBottom:20,lineHeight:1.6}}>ChromaDB에 저장하면 AI Assistant가<br/>향후 유사 알람 분석 시 참고합니다.</p>
+      <div style={{display:"flex",gap:10}}>
+        <button onClick={()=>setShowRagModal(false)} style={{flex:1,padding:"11px",borderRadius:8,border:"1px solid #e5e7eb",background:"#fff",cursor:"pointer"}}>취소</button>
+        <button
+          onClick={async ()=>{
+            setShowRagModal(false);
+            const filename = "report_20260131_EQP12_THP.pdf";
+            const content = `KPI 이상 분석 보고서
+장비: EQP12 | KPI: THP | 날짜: 2026-01-31
+목표: 250 | 실적: 227 | 차이: -23
+
+■ 근본 원인
+${LATEST_ALARM.causes.map((c,i)=>`${i+1}. ${c}`).join("\n")}
+
+■ 해결 시나리오
+${LATEST_ALARM.scenarios.map((s,i)=>`${i+1}. ${s}`).join("\n")}`;
+            try {
+  await saveReportToPdf(filename, content, {"장비":"EQP12","KPI":"THP","날짜":"2026-01-31"});
+} catch(e) {
+  console.log("PDF 저장 실패 (백엔드 미연결)", e);
+}
+            if(!latestSaved){
+              setHistoryList(p=>[...p,{...REPORTS[0],id:12,filename,date:"2026-01-31",time:"09:10",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",alarm_kpi:"THP",target_raw:"250",actual_raw:"227",diff_raw:"-23",target_num:250,actual_num:227,causes:LATEST_ALARM.causes,scenarios:LATEST_ALARM.scenarios,results:["THP 목표 250 달성 목표"],pdf_raw:{basic_info:"날짜: 2026-01-31 | EQP12 | LINE2",problem:"THP 목표 250 → 실적 227",root_cause:LATEST_ALARM.causes.join("\n"),scenario:LATEST_ALARM.scenarios.join("\n"),result:"THP 정상화 목표"}}]);
+              setLatestSaved(true);
+              setLatestAlarmCount(0);
+            }
+            fetchReportList().then(setPdfFiles);
+            setShowSavedToast(true);
+            setTimeout(()=>setShowSavedToast(false),2500);
+          }}
+          style={{flex:1,padding:"11px",borderRadius:8,border:"none",background:"#2563eb",color:"#fff",fontWeight:700,cursor:"pointer"}}
+        >✅ 저장</button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* 저장 완료 토스트 */}
+{showSavedToast&&(
+  <div style={{position:"fixed",bottom:28,right:28,background:"#0f172a",color:"#fff",padding:"14px 20px",borderRadius:10,fontSize:13,fontWeight:600,zIndex:999,display:"flex",gap:8,alignItems:"center",boxShadow:"0 8px 24px rgba(0,0,0,0.3)"}}>
+    ✅ RAG 저장 완료! 과거이력에 추가되었습니다.
+  </div>
+)}
+{activeTab==="analytics"&&<AnalyticsPage reports={historyList}/>}
+        {activeTab==="settings"&&<SettingsPage/>}
       </main>
 
       {selReport&&<ReportPanel report={selReport} onClose={()=>setSelReport(null)}/>}

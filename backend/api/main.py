@@ -19,10 +19,10 @@ load_dotenv()
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from backend.api.routes import alarm, question, system
+from backend.api.routes import alarm, question, system, reports  # ← 여기로 이동
 from backend.api.models import HealthResponse, ErrorResponse
 
-# FastAPI 앱 생성 (한 번만!)
+# FastAPI 앱 생성
 app = FastAPI(
     title="AI Agent KPI Monitor API",
     description="제조 라인 KPI 모니터링 및 AI 기반 근본 원인 분석 시스템",
@@ -31,7 +31,7 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS 설정 (한 번만!)
+# CORS 설정
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -44,7 +44,7 @@ app.add_middleware(
 app.include_router(alarm.router, prefix="/api")
 app.include_router(question.router, prefix="/api")
 app.include_router(system.router, prefix="/api")
-
+app.include_router(reports.router, prefix="/api")  # ← 여기로 이동
 
 # ── Bedrock 채팅 엔드포인트 ──────────────────────────────────────
 class Message(BaseModel):
@@ -76,8 +76,6 @@ async def chat(req: ChatRequest):
     result = json.loads(response["body"].read())
     return {"content": result["content"][0]["text"]}
 
-
-# ── 전역 예외 핸들러 ─────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
@@ -89,7 +87,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         ).dict()
     )
 
-
 @app.get("/health", response_model=HealthResponse, tags=["System"])
 async def health_check():
     return HealthResponse(
@@ -97,7 +94,6 @@ async def health_check():
         timestamp=datetime.now().isoformat(),
         version="1.0.0"
     )
-
 
 @app.get("/", tags=["System"])
 async def root():
@@ -107,7 +103,6 @@ async def root():
         "docs": "/docs",
         "health": "/health"
     }
-
 
 if __name__ == "__main__":
     import uvicorn
