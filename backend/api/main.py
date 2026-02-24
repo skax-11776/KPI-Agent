@@ -1,19 +1,18 @@
 """
 FastAPI 메인 애플리케이션
 """
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime
-import sys
 from pathlib import Path
 from pydantic import BaseModel
 from typing import List
-import boto3, json, os
 from dotenv import load_dotenv
 from backend.graph.workflow import run_alarm_analysis, run_question_answer
 from backend.api.routes import alarm, question, system, reports, supabase
+
+import sys
 
 load_dotenv()
 
@@ -21,7 +20,7 @@ load_dotenv()
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from backend.api.routes import alarm, question, system, reports  # ← 여기로 이동
+from backend.api.routes import alarm, question, system, reports
 from backend.api.models import HealthResponse, ErrorResponse
 
 # FastAPI 앱 생성
@@ -49,7 +48,7 @@ app.include_router(system.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")  
 app.include_router(supabase.router, prefix="/api")
 
-# ── Bedrock 채팅 엔드포인트 ──────────────────────────────────────
+# Bedrock 채팅 엔드포인트
 class Message(BaseModel):
     role: str
     content: str

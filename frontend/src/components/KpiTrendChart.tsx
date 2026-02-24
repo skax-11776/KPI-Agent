@@ -50,7 +50,7 @@ const KpiTrendChart: React.FC<KpiTrendChartProps> = ({ data }) => {
               border: '2px solid #00ff41',
               borderRadius: '4px',
               color: '#00ff41',
-              fontFamily: 'Roboto Mono',
+              fontFamily: 'Pretendard',
             }}
           />
           <Legend

@@ -320,7 +320,7 @@ function AchievementBar({report}:{report:Report}) {
       <div style={{flex:1,height:6,background:"#f3f4f6",borderRadius:3,overflow:"hidden"}}>
         <div style={{width:`${rate}%`,height:"100%",background:color,borderRadius:3}}/>
       </div>
-      <span style={{fontSize:11,fontWeight:700,color,minWidth:36,textAlign:"right" as const,fontFamily:"monospace"}}>{rate.toFixed(0)}%</span>
+      <span style={{fontSize:11,fontWeight:700,color,minWidth:36,textAlign:"right" as const,fontFamily:"Pretendard, sans-serif"}}>{rate.toFixed(0)}%</span>
     </div>
   );
 }
@@ -343,7 +343,7 @@ function ReportPanel({report,onClose}:{report:Report;onClose:()=>void}) {
             <div style={{width:12,height:12,borderRadius:"50%",background:meta.color,marginTop:4}}/>
             <div>
               <div style={{fontSize:17,fontWeight:700,color:"#0f172a"}}>{report.eqp_id} — {meta.label} 알람</div>
-              <div style={{fontSize:12,color:"#9ca3af",marginTop:3,fontFamily:"monospace"}}>{report.date} {report.time} · {report.line_id} · {report.oper_id}</div>
+              <div style={{fontSize:12,color:"#9ca3af",marginTop:3,fontFamily:"Pretendard, sans-serif"}}>{report.date} {report.time} · {report.line_id} · {report.oper_id}</div>
             </div>
           </div>
           <button style={S.panelClose} onClick={onClose}>닫기</button>
@@ -351,7 +351,7 @@ function ReportPanel({report,onClose}:{report:Report;onClose:()=>void}) {
 
         {/* 파일명 + 원본 토글 */}
         <div style={{display:"flex",alignItems:"center",gap:8,background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:7,padding:"8px 12px",marginBottom:16}}>
-          <span style={{fontSize:11,color:"#374151",fontFamily:"monospace",flex:1}}>{report.filename}</span>
+          <span style={{fontSize:11,color:"#374151",fontFamily:"Pretendard, sans-serif",flex:1}}>{report.filename}</span>
           <span style={{fontSize:10,fontWeight:700,color:"#7c3aed",background:"#ede9fe",padding:"2px 7px",borderRadius:4}}>RAG</span>
           <button style={{fontSize:11,color:"#2563eb",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:4,padding:"3px 10px",cursor:"pointer"}} onClick={()=>setRaw(!raw)}>
             {raw?"구조화 보기":"PDF 원본 보기"}
@@ -360,7 +360,7 @@ function ReportPanel({report,onClose}:{report:Report;onClose:()=>void}) {
 
         {/* PDF 원본 모드 */}
         {raw?(
-          <div style={{background:"#0f172a",borderRadius:10,padding:20,marginBottom:16,fontFamily:"monospace",fontSize:12}}>
+          <div style={{background:"#0f172a",borderRadius:10,padding:20,marginBottom:16,fontFamily:"Pretendard, sans-serif",fontSize:12}}>
             <div style={{color:"#60a5fa",fontSize:11,letterSpacing:1,marginBottom:14}}>── KPI 알람 분석 보고서 (PDF 원본) ──</div>
             {([
               {label:"## 기본 정보",text:report.pdf_raw.basic_info},
@@ -381,7 +381,7 @@ function ReportPanel({report,onClose}:{report:Report;onClose:()=>void}) {
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
               <div style={{flex:1,background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,padding:"14px 16px",textAlign:"center" as const}}>
                 <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,marginBottom:6,letterSpacing:0.6}}>Target</div>
-                <div style={{fontSize:22,fontWeight:700,fontFamily:"monospace"}}>{report.target_raw}</div>
+                <div style={{fontSize:22,fontWeight:700,fontFamily:"Pretendard, sans-serif"}}>{report.target_raw}</div>
               </div>
               <div style={{textAlign:"center" as const,width:44}}>
                 <div style={{color:bad?"#dc2626":"#16a34a",fontSize:22,fontWeight:700}}>{bad?"↓":"↑"}</div>
@@ -389,14 +389,14 @@ function ReportPanel({report,onClose}:{report:Report;onClose:()=>void}) {
               </div>
               <div style={{flex:1,background:bad?"#fef2f2":"#f0fdf4",border:`1px solid ${bad?"#fecaca":"#bbf7d0"}`,borderRadius:8,padding:"14px 16px",textAlign:"center" as const}}>
                 <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,marginBottom:6,letterSpacing:0.6}}>Actual</div>
-                <div style={{fontSize:22,fontWeight:700,fontFamily:"monospace",color:bad?"#dc2626":"#16a34a"}}>{report.actual_raw}</div>
+                <div style={{fontSize:22,fontWeight:700,fontFamily:"Pretendard, sans-serif",color:bad?"#dc2626":"#16a34a"}}>{report.actual_raw}</div>
               </div>
             </div>
             {/* 달성률 */}
             <div style={{marginBottom:16}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
                 <SL style={{marginBottom:0}}>달성률</SL>
-                <span style={{fontSize:13,fontWeight:700,color:bad?"#dc2626":"#16a34a",fontFamily:"monospace"}}>{rate.toFixed(1)}%</span>
+                <span style={{fontSize:13,fontWeight:700,color:bad?"#dc2626":"#16a34a",fontFamily:"Pretendard, sans-serif"}}>{rate.toFixed(1)}%</span>
               </div>
               <div style={{height:8,background:"#f3f4f6",borderRadius:4,overflow:"hidden"}}>
                 <div style={{width:`${rate}%`,height:"100%",background:bad?"#dc2626":"#16a34a",borderRadius:4}}/>
@@ -507,7 +507,7 @@ function AnalyticsPage({reports}: {reports: any[]}) {
         ].map(({label,value,color})=>(
           <div key={label} style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"18px 20px"}}>
             <div style={{fontSize:11,color:"#9ca3af",fontWeight:600,marginBottom:6}}>{label}</div>
-            <div style={{fontSize:28,fontWeight:800,color,fontFamily:"monospace"}}>{value}</div>
+            <div style={{fontSize:28,fontWeight:800,color,fontFamily:"Pretendard, sans-serif"}}>{value}</div>
           </div>
         ))}
       </div>
@@ -536,7 +536,7 @@ function AnalyticsPage({reports}: {reports: any[]}) {
                 <div>
                   <span style={{fontSize:13,color:"#6b7280"}}>목표: {target} · 알람 {kpiCount[key]}건</span>
                 </div>
-                <span style={{fontSize:28,fontWeight:800,fontFamily:"monospace",color}}>{rate.toFixed(1)}%</span>
+                <span style={{fontSize:28,fontWeight:800,fontFamily:"Pretendard, sans-serif",color}}>{rate.toFixed(1)}%</span>
               </div>
               <div style={{height:14,background:"#f3f4f6",borderRadius:7,overflow:"hidden",marginBottom:20}}>
                 <div style={{width:`${rate}%`,height:"100%",background:color,borderRadius:7,transition:"width 0.5s"}}/>
@@ -544,10 +544,10 @@ function AnalyticsPage({reports}: {reports: any[]}) {
               {/* 해당 KPI 알람 목록 */}
               {selectedReports.map((r,i)=>(
                 <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 12px",borderRadius:8,background:"#f9fafb",marginBottom:6}}>
-                  <span style={{fontSize:11,fontFamily:"monospace",color:"#9ca3af",width:80,flexShrink:0}}>{r.date}</span>
+                  <span style={{fontSize:11,fontFamily:"Pretendard, sans-serif",color:"#9ca3af",width:80,flexShrink:0}}>{r.date}</span>
                   <span style={{fontWeight:700,fontSize:12,width:50,flexShrink:0}}>{r.eqp_id}</span>
                   <span style={{fontSize:11,color:"#6b7280",flex:1}}>{r.causes[0]}</span>
-                  <span style={{fontSize:12,fontFamily:"monospace",fontWeight:700,color,flexShrink:0}}>
+                  <span style={{fontSize:12,fontFamily:"Pretendard, sans-serif",fontWeight:700,color,flexShrink:0}}>
                     {r.actual_raw} / {r.target_raw}
                   </span>
                 </div>
@@ -564,7 +564,7 @@ function AnalyticsPage({reports}: {reports: any[]}) {
           <div key={kpi} style={{marginBottom:14}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
               <span style={{fontSize:12,fontWeight:600}}>{kpi}</span>
-              <span style={{fontSize:12,fontFamily:"monospace"}}>{count}건</span>
+              <span style={{fontSize:12,fontFamily:"Pretendard, sans-serif"}}>{count}건</span>
             </div>
             <div style={{height:10,background:"#f3f4f6",borderRadius:5,overflow:"hidden"}}>
               <div style={{width:`${(count/reports.length)*100}%`,height:"100%",background:COLORS[kpi],borderRadius:5}}/>
@@ -578,11 +578,11 @@ function AnalyticsPage({reports}: {reports: any[]}) {
         <div style={{fontSize:14,fontWeight:700,marginBottom:16}}>일별 알람 타임라인</div>
         {reports.map((r,i)=>(
           <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 12px",borderRadius:8,background:"#f9fafb",marginBottom:6}}>
-            <span style={{fontSize:11,fontFamily:"monospace",color:"#9ca3af",width:80,flexShrink:0}}>{r.date}</span>
+            <span style={{fontSize:11,fontFamily:"Pretendard, sans-serif",color:"#9ca3af",width:80,flexShrink:0}}>{r.date}</span>
             <span style={{fontWeight:700,fontSize:12,width:50,flexShrink:0}}>{r.eqp_id}</span>
             <span style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:4,background:COLORS[r.alarm_kpi]+"22",color:COLORS[r.alarm_kpi]}}>{r.alarm_kpi}</span>
             <span style={{fontSize:11,color:"#6b7280",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.causes[0]}</span>
-            <span style={{fontSize:11,fontFamily:"monospace",color:"#dc2626",flexShrink:0}}>{r.diff_raw}</span>
+            <span style={{fontSize:11,fontFamily:"Pretendard, sans-serif",color:"#dc2626",flexShrink:0}}>{r.diff_raw}</span>
           </div>
         ))}
       </div>
@@ -609,7 +609,7 @@ function SettingsPage() {
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <input type="number" value={(thresholds as any)[key]}
                 onChange={e=>setThresholds(p=>({...p,[key]:Number(e.target.value)}))}
-                style={{flex:1,padding:"8px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,fontFamily:"monospace",outline:"none"}}/>
+                style={{flex:1,padding:"8px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,fontFamily:"Pretendard, sans-serif",outline:"none"}}/>
               <span style={{fontSize:12,color:"#9ca3af",width:32}}>{unit}</span>
             </div>
           </div>
@@ -630,7 +630,7 @@ function SettingsPage() {
         ].map(({label,value})=>(
           <div key={label} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
             <span style={{fontSize:13,color:"#374151"}}>{label}</span>
-            <span style={{fontSize:12,fontFamily:"monospace",color:"#6b7280"}}>{value}</span>
+            <span style={{fontSize:12,fontFamily:"Pretendard, sans-serif",color:"#6b7280"}}>{value}</span>
           </div>
         ))}
       </div>
@@ -836,7 +836,7 @@ useEffect(()=>{
             <div key={k} style={{display:"flex",alignItems:"center",gap:7,marginBottom:6}}>
               <div style={{width:7,height:7,borderRadius:"50%",background:KPI_META[k].color,flexShrink:0}}/>
               <span style={{fontSize:11,color:"#94a3b8",flex:1}}>{KPI_META[k].label}</span>
-              <span style={{fontSize:12,fontWeight:600,color:"#e2e8f0",fontFamily:"monospace"}}>{n}</span>
+              <span style={{fontSize:12,fontWeight:600,color:"#e2e8f0",fontFamily:"Pretendard, sans-serif"}}>{n}</span>
             </div>
           ))}
         </div>
@@ -883,7 +883,7 @@ useEffect(()=>{
     display:"flex", alignItems:"center", gap:6,
   }}>
         <span style={{fontSize:10,fontWeight:700,color:"#9ca3af"}}>{label}</span>
-        <span style={{fontSize:13,fontWeight:700,fontFamily:"monospace",color:bad?"#dc2626":color}}>{val}</span>
+        <span style={{fontSize:13,fontWeight:700,fontFamily:"Pretendard, sans-serif",color:bad?"#dc2626":color}}>{val}</span>
         {bad && <span style={{width:6,height:6,borderRadius:"50%",background:"#dc2626",animation:"pulse 1s infinite"}}/>}
       </div>
     ))}
@@ -911,7 +911,7 @@ useEffect(()=>{
                       {c.bad&&<span style={{fontSize:10,fontWeight:600,color:"#dc2626",background:"#fee2e2",padding:"2px 7px",borderRadius:4}}>이상</span>}
                     </div>
                     <div style={{display:"flex",alignItems:"baseline",gap:6}}>
-                      <div style={{fontSize:26,fontWeight:700,fontFamily:"monospace",color:c.bad?"#dc2626":"#0f172a",lineHeight:1}}>{c.val}</div>
+                      <div style={{fontSize:26,fontWeight:700,fontFamily:"Pretendard, sans-serif",color:c.bad?"#dc2626":"#0f172a",lineHeight:1}}>{c.val}</div>
                       <span style={{fontSize:11,color:d.color,fontWeight:600}}>{d.arrow} {d.val}</span>
                     </div>
                     <div style={{fontSize:11,color:"#9ca3af",marginTop:6}}>{c.sub} · {c.tgt}</div>
@@ -942,12 +942,12 @@ useEffect(()=>{
                 <span style={{fontSize:16,fontWeight:700,color:"#0f172a"}}>EQP12 — Throughput 알람</span>
                 <span style={{...S.badge,background:"#d1fae5",color:"#065f46"}}>THP · 신규</span>
               </div>
-              <div style={{fontSize:11,color:"#9ca3af",marginBottom:10,fontFamily:"monospace"}}>2026-01-31 09:10 · LINE2 · OPER4</div>
+              <div style={{fontSize:11,color:"#9ca3af",marginBottom:10,fontFamily:"Pretendard, sans-serif"}}>2026-01-31 09:10 · LINE2 · OPER4</div>
               <div style={{display:"flex",gap:10,padding:"10px 14px",background:"#f9fafb",borderRadius:8,marginBottom:10}}>
-                <div style={{flex:1}}><div style={{fontSize:10,color:"#9ca3af",fontWeight:600,textTransform:"uppercase" as const,marginBottom:2}}>Target</div><div style={{fontSize:16,fontWeight:700,fontFamily:"monospace"}}>250</div></div>
+                <div style={{flex:1}}><div style={{fontSize:10,color:"#9ca3af",fontWeight:600,textTransform:"uppercase" as const,marginBottom:2}}>Target</div><div style={{fontSize:16,fontWeight:700,fontFamily:"Pretendard, sans-serif"}}>250</div></div>
                 <div style={{color:"#dc2626",fontSize:20,fontWeight:700,alignSelf:"center"}}>↓</div>
-                <div style={{flex:1}}><div style={{fontSize:10,color:"#9ca3af",fontWeight:600,textTransform:"uppercase" as const,marginBottom:2}}>Actual</div><div style={{fontSize:16,fontWeight:700,fontFamily:"monospace",color:"#dc2626"}}>227</div></div>
-                <div style={{flex:1}}><div style={{fontSize:10,color:"#9ca3af",fontWeight:600,textTransform:"uppercase" as const,marginBottom:2}}>Diff</div><div style={{fontSize:16,fontWeight:700,fontFamily:"monospace",color:"#dc2626"}}>-23</div></div>
+                <div style={{flex:1}}><div style={{fontSize:10,color:"#9ca3af",fontWeight:600,textTransform:"uppercase" as const,marginBottom:2}}>Actual</div><div style={{fontSize:16,fontWeight:700,fontFamily:"Pretendard, sans-serif",color:"#dc2626"}}>227</div></div>
+                <div style={{flex:1}}><div style={{fontSize:10,color:"#9ca3af",fontWeight:600,textTransform:"uppercase" as const,marginBottom:2}}>Diff</div><div style={{fontSize:16,fontWeight:700,fontFamily:"Pretendard, sans-serif",color:"#dc2626"}}>-23</div></div>
               </div>
               <div style={{fontSize:12,color:"#374151"}}>{LATEST_ALARM.causes[0]}</div>
               <div style={{fontSize:11,color:"#2563eb",fontWeight:500,marginTop:8,textAlign:"right" as const}}>Alarm Center에서 상세 보기 →</div>
@@ -976,7 +976,7 @@ useEffect(()=>{
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
                   <div>
                     <div style={{fontSize:20,fontWeight:700,color:"#0f172a"}}>EQP12 — Throughput 알람</div>
-                    <div style={{fontSize:12,color:"#9ca3af",marginTop:4,fontFamily:"monospace"}}>2026-01-31 09:10 · LINE2 · OPER4 · RCP23 / RCP24</div>
+                    <div style={{fontSize:12,color:"#9ca3af",marginTop:4,fontFamily:"Pretendard, sans-serif"}}>2026-01-31 09:10 · LINE2 · OPER4 · RCP23 / RCP24</div>
                   </div>
                   <span style={{...S.badge,background:"#d1fae5",color:"#065f46",fontSize:13,padding:"5px 12px"}}>THP · 신규</span>
                 </div>
@@ -990,8 +990,8 @@ useEffect(()=>{
                   ].map((kv,i)=>(
                     <div key={i} style={{background:"#f9fafb",border:`1px solid ${kv.bad?"#fecaca":"#e5e7eb"}`,borderRadius:8,padding:"12px 14px"}}>
                       <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase" as const,marginBottom:6,letterSpacing:0.5}}>{kv.label}</div>
-                      <div style={{fontSize:11,color:"#9ca3af",fontFamily:"monospace",marginBottom:2}}>T: {kv.t}</div>
-                      <div style={{fontSize:17,fontWeight:700,fontFamily:"monospace",color:kv.bad?"#dc2626":"#059669"}}>A: {kv.v}</div>
+                      <div style={{fontSize:11,color:"#9ca3af",fontFamily:"Pretendard, sans-serif",marginBottom:2}}>T: {kv.t}</div>
+                      <div style={{fontSize:17,fontWeight:700,fontFamily:"Pretendard, sans-serif",color:kv.bad?"#dc2626":"#059669"}}>A: {kv.v}</div>
                       {kv.bad&&<div style={{marginTop:5}}><span style={{fontSize:10,fontWeight:600,color:"#dc2626",background:"#fef2f2",padding:"2px 7px",borderRadius:4}}>미달</span></div>}
                     </div>
                   ))}
@@ -1012,10 +1012,10 @@ useEffect(()=>{
                   </div>
                   {LATEST_ALARM.eqp_timeline.map((row,i)=>(
                     <div key={i} style={{display:"grid",gridTemplateColumns:"120px 80px 1fr 80px",padding:"8px 14px",borderBottom:i<LATEST_ALARM.eqp_timeline.length-1?"1px solid #f3f4f6":"none",background:row.state==="DOWN"?"#fef2f2":"#fff"}}>
-                      <div style={{fontSize:11,fontFamily:"monospace",color:"#374151"}}>{row.time}</div>
+                      <div style={{fontSize:11,fontFamily:"Pretendard, sans-serif",color:"#374151"}}>{row.time}</div>
                       <div><span style={{fontSize:11,fontWeight:700,padding:"2px 7px",borderRadius:4,background:row.state==="DOWN"?"#fee2e2":row.state==="RUN"?"#dcfce7":"#f1f5f9",color:row.state==="DOWN"?"#991b1b":row.state==="RUN"?"#166534":"#475569"}}>{row.state}</span></div>
-                      <div style={{fontSize:11,fontFamily:"monospace",color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{row.lot}</div>
-                      <div style={{fontSize:11,fontFamily:"monospace",color:"#374151"}}>{row.rcp}</div>
+                      <div style={{fontSize:11,fontFamily:"Pretendard, sans-serif",color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{row.lot}</div>
+                      <div style={{fontSize:11,fontFamily:"Pretendard, sans-serif",color:"#374151"}}>{row.rcp}</div>
                     </div>
                   ))}
                 </div>
@@ -1069,20 +1069,20 @@ useEffect(()=>{
                     return(
                       <div key={i} style={{...S.card,borderLeft:`4px solid ${meta.color}`,cursor:"pointer"}} onClick={()=>setSelReport(r)}>
                         <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                          <span style={{fontSize:15,fontWeight:700,fontFamily:"monospace"}}>{r.eqp_id}</span>
+                          <span style={{fontSize:15,fontWeight:700,fontFamily:"Pretendard, sans-serif"}}>{r.eqp_id}</span>
                           <span style={{...S.badge,background:meta.bg,color:meta.textColor}}>{meta.label}</span>
                         </div>
-                        <div style={{fontSize:11,color:"#9ca3af",marginBottom:10,fontFamily:"monospace"}}>{r.date} {r.time} · {r.line_id}</div>
+                        <div style={{fontSize:11,color:"#9ca3af",marginBottom:10,fontFamily:"Pretendard, sans-serif"}}>{r.date} {r.time} · {r.line_id}</div>
                         <div style={{display:"flex",gap:8,padding:"10px 12px",background:"#f9fafb",borderRadius:7,marginBottom:10}}>
-                          <div style={{flex:1}}><div style={{fontSize:10,color:"#9ca3af",textTransform:"uppercase" as const,marginBottom:2}}>Target</div><div style={{fontSize:14,fontWeight:700,fontFamily:"monospace"}}>{r.target_raw}</div></div>
+                          <div style={{flex:1}}><div style={{fontSize:10,color:"#9ca3af",textTransform:"uppercase" as const,marginBottom:2}}>Target</div><div style={{fontSize:14,fontWeight:700,fontFamily:"Pretendard, sans-serif"}}>{r.target_raw}</div></div>
                           <div style={{color:bad?"#dc2626":"#16a34a",fontSize:18,fontWeight:700,alignSelf:"center"}}>{bad?"↓":"↑"}</div>
-                          <div style={{flex:1}}><div style={{fontSize:10,color:"#9ca3af",textTransform:"uppercase" as const,marginBottom:2}}>Actual</div><div style={{fontSize:14,fontWeight:700,fontFamily:"monospace",color:bad?"#dc2626":"#16a34a"}}>{r.actual_raw}</div></div>
+                          <div style={{flex:1}}><div style={{fontSize:10,color:"#9ca3af",textTransform:"uppercase" as const,marginBottom:2}}>Actual</div><div style={{fontSize:14,fontWeight:700,fontFamily:"Pretendard, sans-serif",color:bad?"#dc2626":"#16a34a"}}>{r.actual_raw}</div></div>
                         </div>
                         <AchievementBar report={r}/>
                         <div style={{fontSize:12,color:"#6b7280",marginTop:8,lineHeight:1.5}}>{r.causes[0]}</div>
                         <div style={{marginTop:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                           <span style={{fontSize:10,color:"#7c3aed",background:"#ede9fe",padding:"2px 7px",borderRadius:4,fontWeight:600}}>PDF 원본 보기 →</span>
-                          <span style={{fontSize:10,color:"#9ca3af",fontFamily:"monospace"}}>{r.filename.replace("report_","").replace(".pdf","")}</span>
+                          <span style={{fontSize:10,color:"#9ca3af",fontFamily:"Pretendard, sans-serif"}}>{r.filename.replace("report_","").replace(".pdf","")}</span>
                         </div>
                       </div>
                     );
@@ -1105,14 +1105,14 @@ useEffect(()=>{
                 {/* 최신 알람 (RAG 미등록) */}
                 <div style={{padding:"8px 10px",borderRadius:7,background:"#dcfce7",border:"1px solid #bbf7d0",cursor:"pointer",marginBottom:4}} onClick={()=>{setActiveTab("alarms");setAlarmSub("latest");}}>
                   <div style={{fontSize:11,fontWeight:600,color:"#166534"}}>EQP12 · THP (신규)</div>
-                  <div style={{fontSize:10,color:"#16a34a",fontFamily:"monospace"}}>2026-01-31 · 미등록</div>
+                  <div style={{fontSize:10,color:"#16a34a",fontFamily:"Pretendard, sans-serif"}}>2026-01-31 · 미등록</div>
                 </div>
                 {REPORTS.map((r,i)=>(
                   <div key={i} style={S.ragItem} onClick={()=>setSelReport(r)}>
                     <div style={{width:7,height:7,borderRadius:"50%",background:KPI_META[r.alarm_kpi].color,flexShrink:0}}/>
                     <div style={{flex:1}}>
                       <div style={{fontSize:11,fontWeight:500,color:"#374151"}}>{r.eqp_id} · {KPI_META[r.alarm_kpi].label}</div>
-                      <div style={{fontSize:10,color:"#9ca3af",fontFamily:"monospace"}}>{r.date}</div>
+                      <div style={{fontSize:10,color:"#9ca3af",fontFamily:"Pretendard, sans-serif"}}>{r.date}</div>
                     </div>
                   </div>
                 ))}
@@ -1125,7 +1125,7 @@ useEffect(()=>{
                 {msgs.map((m,i)=>(
                   <div key={i} style={{display:"flex",alignItems:"flex-end",gap:8,justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
                     {m.role==="assistant"&&(
-                      <div style={{width:30,height:30,borderRadius:8,background:"#0f172a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,flexShrink:0,fontFamily:"monospace"}}>AI</div>
+                      <div style={{width:30,height:30,borderRadius:8,background:"#0f172a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,flexShrink:0,fontFamily:"Pretendard, sans-serif"}}>AI</div>
                     )}
                     <div style={{maxWidth:"72%"}}>
                       <div style={m.role==="user"?S.userBubble:S.aiBubble}>
@@ -1146,7 +1146,7 @@ useEffect(()=>{
                 ))}
                 {typing&&(
                   <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
-                    <div style={{width:30,height:30,borderRadius:8,background:"#0f172a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,fontFamily:"monospace"}}>AI</div>
+                    <div style={{width:30,height:30,borderRadius:8,background:"#0f172a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,fontFamily:"Pretendard, sans-serif"}}>AI</div>
                     <div style={S.aiBubble}><div style={{display:"flex",gap:4}}>{[0,0.2,0.4].map((d,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#94a3b8",animation:`bounce ${d}s infinite`}}/>)}</div></div>
                   </div>
                 )}
@@ -1198,7 +1198,7 @@ useEffect(()=>{
                   <span style={{fontSize:11,color:"#9ca3af"}}>총 144 rows · 12개 장비 × 12일</span>
                 </div>
                 <div style={{overflowX:"auto" as const}}>
-                  <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"monospace"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"Pretendard, sans-serif"}}>
                     <thead>
                       <tr style={{background:"#f3f4f6",borderBottom:"2px solid #e5e7eb"}}>
                         {["date","eqp_id","line","oper","oee_t","oee_v","thp_t","thp_v","good_out","tat_t","tat_v","wip_t","wip_v","alarm"].map(h=>(
@@ -1247,8 +1247,8 @@ useEffect(()=>{
                       const meta=KPI_META[row.alarm_kpi];
                       return(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
-                          <td style={{padding:"10px 16px",fontFamily:"monospace",color:"#374151"}}>{row.date}</td>
-                          <td style={{padding:"10px 16px",fontWeight:700,fontFamily:"monospace"}}>{row.alarm_eqp_id}</td>
+                          <td style={{padding:"10px 16px",fontFamily:"Pretendard, sans-serif",color:"#374151"}}>{row.date}</td>
+                          <td style={{padding:"10px 16px",fontWeight:700,fontFamily:"Pretendard, sans-serif"}}>{row.alarm_eqp_id}</td>
                           <td style={{padding:"10px 16px"}}><span style={{...S.badge,background:meta.bg,color:meta.textColor}}>{row.alarm_kpi}</span></td>
                         </tr>
                       );
@@ -1272,10 +1272,10 @@ useEffect(()=>{
                   <tbody>
                     {(dbRcpData.length > 0 ? dbRcpData : DB_RCP_STATE).map((row,i)=>(
                       <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
-                        <td style={{padding:"10px 16px",fontFamily:"monospace",color:"#374151"}}>{row.rcp_id}</td>
-                        <td style={{padding:"10px 16px",fontWeight:700,fontFamily:"monospace"}}>{row.eqp_id}</td>
+                        <td style={{padding:"10px 16px",fontFamily:"Pretendard, sans-serif",color:"#374151"}}>{row.rcp_id}</td>
+                        <td style={{padding:"10px 16px",fontWeight:700,fontFamily:"Pretendard, sans-serif"}}>{row.eqp_id}</td>
                         <td style={{padding:"10px 16px"}}>
-                          <span style={{fontSize:12,fontWeight:700,padding:"3px 10px",borderRadius:5,fontFamily:"monospace",
+                          <span style={{fontSize:12,fontWeight:700,padding:"3px 10px",borderRadius:5,fontFamily:"Pretendard, sans-serif",
                             background:row.complex_level>=9?"#fee2e2":row.complex_level>=7?"#fef3c7":"#f0fdf4",
                             color:row.complex_level>=9?"#991b1b":row.complex_level>=7?"#92400e":"#166534"}}>
                             Lv.{row.complex_level}
@@ -1296,7 +1296,7 @@ useEffect(()=>{
                   <span style={{fontSize:11,color:"#9ca3af"}}>총 3,042 rows</span>
                 </div>
                 <div style={{overflowX:"auto" as const}}>
-                  <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"monospace"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"Pretendard, sans-serif"}}>
                     <thead><tr style={{background:"#f3f4f6",borderBottom:"2px solid #e5e7eb"}}>
                       {["event_time","end_time","eqp_id","line","oper","lot_id","rcp_id","state"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",whiteSpace:"nowrap" as const}}>{h}</th>)}
                     </tr></thead>
@@ -1327,7 +1327,7 @@ useEffect(()=>{
                   <span style={{fontSize:11,color:"#9ca3af"}}>총 5,771 rows</span>
                 </div>
                 <div style={{overflowX:"auto" as const}}>
-                  <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"monospace"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"Pretendard, sans-serif"}}>
                     <thead><tr style={{background:"#f3f4f6",borderBottom:"2px solid #e5e7eb"}}>
                       {["event_time","lot_id","line","oper","eqp_id","rcp_id","lot_state","in_cnt","hold","scrap"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",whiteSpace:"nowrap" as const}}>{h}</th>)}
                     </tr></thead>
@@ -1361,7 +1361,7 @@ useEffect(()=>{
         <h3 style={{margin:0,fontSize:16,fontWeight:700}}>📄 PDF 보고서 미리보기</h3>
         <button onClick={()=>setShowPdfModal(false)} style={{border:"none",background:"none",fontSize:18,cursor:"pointer"}}>✕</button>
       </div>
-      <pre style={{background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,padding:16,fontSize:11,fontFamily:"monospace",whiteSpace:"pre-wrap",lineHeight:1.8,marginBottom:16}}>
+      <pre style={{background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:8,padding:16,fontSize:11,fontFamily:"Pretendard, sans-serif",whiteSpace:"pre-wrap",lineHeight:1.8,marginBottom:16}}>
 {`════════════════════════════════
   KPI 이상 분석 보고서
 ════════════════════════════════
@@ -1443,10 +1443,9 @@ ${LATEST_ALARM.scenarios.map((s,i)=>`${i+1}. ${s}`).join("\n")}`;
       {selReport&&<ReportPanel report={selReport} onClose={()=>setSelReport(null)}/>}
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        body{font-family:'IBM Plex Sans KR',sans-serif;background:#f8f9fa}
-        button{cursor:pointer;font-family:'IBM Plex Sans KR',sans-serif}
+        body{font-family:'Pretendard',sans-serif;background:#f8f9fa}
+        button{cursor:pointer;font-family:'Pretendard',sans-serif}
         ::-webkit-scrollbar{width:5px;height:5px}
         ::-webkit-scrollbar-track{background:#f1f5f9}
         ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
@@ -1461,7 +1460,7 @@ const S: Record<string,React.CSSProperties> = {
   root:       {display:"flex",minHeight:"100vh",background:"#f8f9fa"},
   sidebar:    {width:230,background:"#0f172a",display:"flex",flexDirection:"column",position:"fixed",top:0,left:0,bottom:0,zIndex:100,padding:"24px 0"},
   logo:       {display:"flex",alignItems:"center",gap:12,padding:"0 18px 24px",borderBottom:"1px solid #1e293b"},
-  logoMark:   {width:36,height:36,background:"#2563eb",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontFamily:"monospace",fontWeight:700,fontSize:11},
+  logoMark:   {width:36,height:36,background:"#2563eb",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontFamily:"Pretendard, sans-serif",fontWeight:700,fontSize:11},
   nav:        {padding:"16px 10px",flex:1,display:"flex",flexDirection:"column",gap:2},
   navItem:    {display:"flex",alignItems:"flex-start",gap:10,width:"100%",padding:"10px 12px",borderRadius:7,border:"none",background:"transparent"},
   navActive:  {background:"#1e293b"},
@@ -1470,14 +1469,14 @@ const S: Record<string,React.CSSProperties> = {
   header:     {background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"16px 32px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:90},
   pageTitle:  {fontSize:18,fontWeight:600,color:"#0f172a"},
   pageSub:    {fontSize:12,color:"#94a3b8",marginTop:2},
-  dateChip:   {fontSize:11,color:"#64748b",background:"#f1f5f9",padding:"5px 12px",borderRadius:20,fontFamily:"monospace"},
+  dateChip:   {fontSize:11,color:"#64748b",background:"#f1f5f9",padding:"5px 12px",borderRadius:20,fontFamily:"Pretendard, sans-serif"},
   alarmChip:  {fontSize:11,color:"#991b1b",background:"#fee2e2",padding:"4px 10px",borderRadius:20,fontWeight:600},
   content:    {padding:"24px 32px",flex:1},
   rtGrid:     {display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:16},
   rtCard:     {background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"16px 18px"},
   chartCard:  {background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"18px 24px"},
   card:       {background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"20px 24px",marginBottom:12},
-  badge:      {fontSize:11,fontWeight:600,padding:"3px 8px",borderRadius:4,fontFamily:"monospace"},
+  badge:      {fontSize:11,fontWeight:600,padding:"3px 8px",borderRadius:4,fontFamily:"Pretendard, sans-serif"},
   subTabBar:  {display:"flex",gap:4,marginBottom:20,padding:"4px",background:"#f3f4f6",borderRadius:10,width:"fit-content"},
   subTab:     {fontSize:13,fontWeight:500,padding:"8px 18px",borderRadius:8,border:"none",background:"transparent",color:"#6b7280"},
   subTabOn:   {background:"#fff",color:"#0f172a",fontWeight:600,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"},
@@ -1490,7 +1489,7 @@ const S: Record<string,React.CSSProperties> = {
   ragItem:    {display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:7,cursor:"pointer",background:"#fff",border:"1px solid #f3f4f6",marginBottom:2},
   userBubble: {background:"#0f172a",color:"#fff",padding:"10px 14px",borderRadius:"12px 12px 4px 12px",fontSize:13,lineHeight:1.6},
   aiBubble:   {background:"#fff",border:"1px solid #e5e7eb",color:"#374151",padding:"10px 14px",borderRadius:"12px 12px 12px 4px",fontSize:13,lineHeight:1.6},
-  chatInput:  {flex:1,padding:"10px 14px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",fontFamily:"'IBM Plex Sans KR',sans-serif"},
+  chatInput:  {flex:1,padding:"10px 14px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,outline:"none",fontFamily:"'Pretendard',sans-serif"},
   sendBtn:    {padding:"10px 20px",background:"#0f172a",color:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer"},
   chip:       {fontSize:11.5,color:"#374151",background:"#f1f5f9",border:"1px solid #e5e7eb",borderRadius:20,padding:"5px 12px",cursor:"pointer"},
   overlay:    {position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",backdropFilter:"blur(2px)",zIndex:200,display:"flex",justifyContent:"flex-end"},

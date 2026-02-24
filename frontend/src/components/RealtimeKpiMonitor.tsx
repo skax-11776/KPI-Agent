@@ -70,7 +70,7 @@ const KpiCard: React.FC<KpiCardProps> = ({
         <span style={{
           fontSize: '32px', fontWeight: 800,
           color: isAlarm ? '#ef4444' : '#111827',
-          fontFamily: 'Roboto Mono, monospace',
+          fontFamily: 'Pretendard, sans-serif',
         }}>
           {typeof value === 'number'
             ? label === 'OEE' ? `${value.toFixed(1)}%`

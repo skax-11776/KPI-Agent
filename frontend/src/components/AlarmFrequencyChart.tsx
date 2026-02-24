@@ -56,7 +56,7 @@ const AlarmFrequencyChart: React.FC<AlarmFrequencyChartProps> = ({ data }) => {
               border: '2px solid #00ff41',
               borderRadius: '4px',
               color: '#00ff41',
-              fontFamily: 'Roboto Mono',
+              fontFamily: 'Pretendard',
             }}
           />
           <Legend wrapperStyle={{ color: '#00ff41', fontSize: '13px' }} />
