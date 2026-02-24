@@ -340,9 +340,9 @@ const AlarmCenter: React.FC = () => {
           onClick={handleReset}
           style={{
             marginLeft: 'auto',
-            padding: '8px 16px', borderRadius: '8px',
+            padding: '8px 18px', borderRadius: '8px',
             border: '1px solid #d1d5db', background: '#fff',
-            color: '#6b7280', fontSize: '13px', cursor: 'pointer',
+            color: '#6b7280', fontSize: '14px', fontWeight: 300, cursor: 'pointer',
           }}
         >
           🔄 초기화
@@ -465,9 +465,9 @@ const AlarmCenter: React.FC = () => {
             <button
               onClick={handleGeneratePdf}
               style={{
-                padding: '12px 28px', borderRadius: '8px', border: 'none',
+                padding: '7px 14px', borderRadius: '6px', border: 'none',
                 background: latestSaved ? '#6b7280' : '#3b82f6',
-                color: '#fff', fontWeight: 700, fontSize: '14px', cursor: 'pointer',
+                color: '#fff', fontWeight: 600, fontSize: '12px', cursor: 'pointer',
               }}
             >
               📄 PDF 보고서 생성

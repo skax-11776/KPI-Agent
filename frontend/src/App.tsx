@@ -1033,12 +1033,13 @@ useEffect(()=>{
                 <div style={{borderTop:"1px solid #f3f4f6",paddingTop:16,marginTop:8,display:"flex",gap:12,alignItems:"center"}}>
                   <button
                     onClick={()=>setShowPdfModal(true)}
-                    style={{padding:"10px 22px",borderRadius:8,border:"none",background:"#2563eb",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}
+                    style={{padding:"7px 14px",borderRadius:6,border:"none",background:"#2563eb",color:"#fff",fontWeight:600,fontSize:13,cursor:"pointer"}}
                   >
-                    📄 PDF 보고서 생성
+                    PDF 보고서 생성
                   </button>
                   {latestSaved&&<span style={{color:"#16a34a",fontWeight:600,fontSize:13}}>✅ RAG에 저장됨</span>}
                   <button
+                    style={{padding:"6px 12px",borderRadius:6,border:"1px solid #d1d5db",background:"#fff",color:"#6b7280",fontWeight:600,fontSize:13,cursor:"pointer"}}
                     onClick={async ()=>{
                     if(window.confirm("초기화하면 추가된 보고서 파일도 삭제됩니다. 계속하시겠습니까?")){
                       // 추가된 파일만 삭제 (기존 11개 제외)
@@ -1052,14 +1053,14 @@ useEffect(()=>{
                     }
                   }}
                   >
-                    🔄 초기화
+                    초기화
                   </button>
                 </div>
 
             {/* 과거 이력 */}
             {alarmSub==="history"&&(
               <div>
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"10px 16px",background:"#ede9fe",border:"1px solid #c4b5fd",borderRadius:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginTop:16,marginBottom:16,padding:"10px 16px",background:"#ede9fe",border:"1px solid #c4b5fd",borderRadius:8}}>
                   <span style={{fontSize:11,fontWeight:700,color:"#5b21b6",letterSpacing:0.5}}>RAG DB</span>
                   <span style={{fontSize:13,color:"#4c1d95"}}>ChromaDB에 인덱싱된 PDF 리포트 11건 — 클릭 시 PDF 원본 내용을 확인할 수 있습니다</span>
                 </div>
