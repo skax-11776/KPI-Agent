@@ -1,7 +1,6 @@
 """
 FastAPI 메인 애플리케이션
 """
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -44,7 +43,7 @@ app.add_middleware(
 app.include_router(alarm.router, prefix="/api")
 app.include_router(question.router, prefix="/api")
 app.include_router(system.router, prefix="/api")
-app.include_router(reports.router, prefix="/api")  # ← 여기로 이동
+app.include_router(reports.router, prefix="/api")
 
 # ── Bedrock 채팅 엔드포인트 ──────────────────────────────────────
 class Message(BaseModel):

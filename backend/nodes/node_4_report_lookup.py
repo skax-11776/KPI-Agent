@@ -36,23 +36,23 @@ def node_4_report_lookup(state: dict) -> dict:
     """
     
     print("\n" + "=" * 60)
-    print("🔍 [Node 4] Report Lookup 실행")
+    print("- [Node 4] Report Lookup 실행")
     print("=" * 60)
     
     # 1. 사용자 질문 가져오기
     question = state.get('input_data', '')
     
     if not question:
-        print("❌ 질문이 없습니다")
+        print("- 질문이 없습니다")
         return {
             'report_exists': False,
             'question_text': ''
         }
     
-    print(f"💬 사용자 질문: {question}\n")
+    print(f"- 사용자 질문: {question}\n")
     
     # 2. ChromaDB에서 유사 리포트 검색
-    print("🔍 ChromaDB에서 관련 리포트 검색 중...")
+    print("- ChromaDB에서 관련 리포트 검색 중...")
     
     try:
         # 유사도가 높은 리포트 1개만 확인
@@ -66,23 +66,23 @@ def node_4_report_lookup(state: dict) -> dict:
             # 거리 < 1.5 정도면 관련 있다고 판단
             distance = results[0]['distance']
             
-            print(f"   ✅ 관련 리포트 발견")
-            print(f"   📊 유사도 거리: {distance:.4f}")
-            print(f"   📄 리포트 ID: {results[0]['id']}")
+            print(f"   - 관련 리포트 발견")
+            print(f"   - 유사도 거리: {distance:.4f}")
+            print(f"   - 리포트 ID: {results[0]['id']}")
             
             # 유사도 임계값 확인
             if distance < 1.5:
                 report_exists = True
-                print(f"   ✅ 관련성 높음 (거리 < 1.5)")
+                print(f"   - 관련성 높음 (거리 < 1.5)")
             else:
                 report_exists = False
-                print(f"   ⚠️ 관련성 낮음 (거리 >= 1.5)")
+                print(f"   - 관련성 낮음 (거리 >= 1.5)")
         else:
             report_exists = False
-            print(f"   ⚠️ 관련 리포트 없음")
+            print(f"   - 관련 리포트 없음")
     
     except Exception as e:
-        print(f"   ❌ 검색 실패: {e}")
+        print(f"   - 검색 실패: {e}")
         report_exists = False
     
     print(f"\n결과: {'과거 리포트 있음' if report_exists else '과거 리포트 없음'}")

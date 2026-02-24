@@ -1,39 +1,37 @@
 """
 데이터 처리 및 분석 유틸리티 함수
 """
-
+from backend.config.supabase_config import supabase_config
 from typing import Dict, List, Any, Tuple
 
 def get_latest_alarm():
     """
     가장 최근의 알람 정보를 조회합니다.
-    
-    SCENARIO_MAP에서 가장 최근 날짜의 알람을 반환합니다.
-    
+
+    KPI_DAILY 테이블에서 alarm_flag=1인 가장 최근 행의 날짜와 장비 ID를 반환합니다.
+    어떤 KPI가 알람인지는 Node 2에서 kpi_daily 데이터로 판단합니다.
+
     Returns:
         dict: 최신 알람 정보
             - date: 날짜
-            - eqp_id: 장비 ID  
-            - kpi: KPI
+            - eqp_id: 장비 ID
     """
-    from backend.config.supabase_config import supabase_config
-    
-    # SCENARIO_MAP을 날짜 내림차순으로 정렬하여 1개만 조회
-    result = supabase_config.client.table('scenario_map') \
-        .select('*') \
-        .order('date', desc=True) \
-        .limit(1) \
+    result = (supabase_config.client.table('kpi_daily')
+        .select('*')
+        .eq('alarm_flag', 1)
+        .order('date', desc=True)
+        .limit(1)
         .execute()
-    
+    )
+
     if not result.data:
         return None
-    
+
     latest = result.data[0]
-    
+
     return {
         'date': latest['date'],
-        'eqp_id': latest['alarm_eqp_id'],
-        'kpi': latest['alarm_kpi']
+        'eqp_id': latest['eqp_id']
     }
 
 def check_alarm_condition(

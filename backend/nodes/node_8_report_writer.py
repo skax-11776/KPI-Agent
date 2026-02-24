@@ -45,7 +45,7 @@ def node_8_report_writer(state: dict) -> dict:
     """
     
     print("\n" + "=" * 60)
-    print("📝 [Node 8] Report Writer 실행")
+    print("- [Node 8] Report Writer 실행")
     print("=" * 60)
     
     # 1. State에서 필요한 정보 가져오기
@@ -59,19 +59,19 @@ def node_8_report_writer(state: dict) -> dict:
     # 필수 정보 검증
     if not selected_cause:
         error_msg = "선택된 근본 원인이 없습니다"
-        print(f"❌ {error_msg}")
+        print(f"- {error_msg}")
         return {'error': error_msg}
     
     if not context_text or not kpi_data:
         error_msg = "컨텍스트 또는 KPI 데이터가 없습니다"
-        print(f"❌ {error_msg}")
+        print(f"- {error_msg}")
         return {'error': error_msg}
     
-    print(f"📊 알람 정보:")
+    print(f"- 알람 정보:")
     print(f"   날짜: {alarm_date}")
     print(f"   장비: {alarm_eqp_id}")
     print(f"   KPI: {alarm_kpi}")
-    print(f"\n✨ 선택된 근본 원인:")
+    print(f"\n- 선택된 근본 원인:")
     print(f"   {selected_cause['cause']}")
     print(f"   확률: {selected_cause['probability']}%")
     
@@ -79,17 +79,17 @@ def node_8_report_writer(state: dict) -> dict:
     problem_summary = _generate_problem_summary(kpi_data, alarm_kpi)
     
     # 3. 프롬프트 생성
-    print(f"\n📋 프롬프트 생성 중...")
+    print(f"\n- 프롬프트 생성 중...")
     prompt = get_report_writer_prompt(
         problem_summary=problem_summary,
         selected_cause=selected_cause['cause'],
         evidence=selected_cause['evidence'],
         context_data=context_text
     )
-    print(f"   ✅ 프롬프트 생성 완료 ({len(prompt)}자)")
+    print(f"   - 프롬프트 생성 완료 ({len(prompt)}자)")
     
     # 4. LLM 호출
-    print(f"\n🤖 Claude 호출 중... (이 작업은 몇 초 걸릴 수 있습니다)")
+    print(f"\n- Claude 호출 중... (이 작업은 몇 초 걸릴 수 있습니다)")
     
     try:
         # metadata 업데이트
@@ -100,11 +100,11 @@ def node_8_report_writer(state: dict) -> dict:
         # Claude 호출
         final_report = aws_config.invoke_claude(prompt)
         
-        print(f"   ✅ Claude 응답 받음 ({len(final_report)}자)")
+        print(f"   - Claude 응답 받음 ({len(final_report)}자)")
         
     except Exception as e:
         error_msg = f"LLM 호출 실패: {str(e)}"
-        print(f"   ❌ {error_msg}")
+        print(f"   - {error_msg}")
         return {'error': error_msg}
     
     # 5. 리포트 ID 생성
@@ -113,7 +113,7 @@ def node_8_report_writer(state: dict) -> dict:
     print(f"\n🆔 리포트 ID: {report_id}")
     
     # 6. 리포트 미리보기
-    print(f"\n📄 리포트 미리보기:")
+    print(f"\n- 리포트 미리보기:")
     print("=" * 60)
     lines = final_report.split('\n')
     for line in lines[:15]:  # 처음 15줄만
@@ -122,7 +122,7 @@ def node_8_report_writer(state: dict) -> dict:
     print("=" * 60)
     
     # 7. 통계
-    print(f"\n📊 리포트 통계:")
+    print(f"\n- 리포트 통계:")
     print(f"   총 길이: {len(final_report)}자")
     print(f"   줄 수: {len(lines)}줄")
     print(f"   LLM 호출 횟수: {metadata['llm_calls']}회")

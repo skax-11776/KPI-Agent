@@ -1,9 +1,7 @@
 """
 FastAPI API 테스트
 """
-
 import requests
-import json
 from pprint import pprint
 
 # API 베이스 URL

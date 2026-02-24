@@ -38,49 +38,48 @@ def node_1_input_router(state: dict) -> dict:
     """
     
     print("\n" + "=" * 60)
-    print("🔀 [Node 1] Input Router 실행")
+    print("- [Node 1] Input Router 실행")
     print("=" * 60)
     
     input_type = state.get('input_type')
     
     # 타입 검증
     if input_type not in ['alarm', 'question']:
-        print(f"⚠️ 잘못된 입력 타입: {input_type}")
+        print(f"- 잘못된 입력 타입: {input_type}")
         return {
             'input_type': 'question',
             'error': f'Invalid input_type: {input_type}'
         }
     
-    print(f"📝 입력 타입: {input_type}")
+    print(f"- 입력 타입: {input_type}")
     
     # === 알람 경로 ===
     if input_type == 'alarm':
-        print("\n🚨 알람 경로 선택")
+        print("\n- 알람 경로 선택")
         
         # 최신 알람 정보 조회
         latest_alarm = get_latest_alarm()
         
         if not latest_alarm:
-            print("❌ 알람 정보를 찾을 수 없습니다")
+            print("- 알람 정보를 찾을 수 없습니다")
             return {
                 'error': 'No alarm found'
             }
         
-        print(f"✅ 최신 알람 로드:")
-        print(f"   📅 날짜: {latest_alarm['date']}")
-        print(f"   🔧 장비: {latest_alarm['eqp_id']}")
-        print(f"   📊 KPI: {latest_alarm['kpi']}")
-        
-        # State 업데이트
+        print(f"- 최신 알람 로드:")
+        print(f"   - 날짜: {latest_alarm['date']}")
+        print(f"   - 장비: {latest_alarm['eqp_id']}")
+        print(f"   - KPI: Node 2에서 판단")
+
+        # State 업데이트 (alarm_kpi는 Node 2에서 kpi_daily 데이터로 판단)
         update = {
             'alarm_date': latest_alarm['date'],
             'alarm_eqp_id': latest_alarm['eqp_id'],
-            'alarm_kpi': latest_alarm['kpi']
         }
     
     # === 질문 경로 ===
     else:  # question
-        print("\n💬 질문 경로 선택")
+        print("\n- 질문 경로 선택")
         
         input_data = state.get('input_data', '')
         print(f"   질문: {input_data[:100]}...")
