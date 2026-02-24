@@ -692,6 +692,11 @@ export default function App() {
   const [dashboardSummary, setDashboardSummary] = useState<any>(null);
   const [dbFilterDate, setDbFilterDate] = useState<string>("all");
   const [dbFilterEqp,  setDbFilterEqp]  = useState<string>("all");
+  const [dbPage,       setDbPage]       = useState<number>(1);
+  const [dbEqpTotal,   setDbEqpTotal]   = useState<number>(0);
+  const [dbLotTotal,   setDbLotTotal]   = useState<number>(0);
+  const [dbEqpMeta,    setDbEqpMeta]    = useState<{dates:string[];eqps:string[]}>({dates:[],eqps:[]});
+  const [dbLotMeta,    setDbLotMeta]    = useState<{dates:string[];eqps:string[]}>({dates:[],eqps:[]});
 
 // PDF 목록 로드 (컴포넌트 마운트 시 + 저장/삭제 후)
 useEffect(()=>{
@@ -716,16 +721,6 @@ useEffect(()=>{
   fetch("http://localhost:8000/api/scenario-map")
     .then(r=>r.json())
     .then(d=>{ if(d.success) setDbScenarioData(d.data); })
-    .catch(()=>{});
-
-  fetch("http://localhost:8000/api/lot-state")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbLotData(d.data); })
-    .catch(()=>{});
-
-  fetch("http://localhost:8000/api/eqp-state")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbEqpData(d.data); })
     .catch(()=>{});
 
   fetch("http://localhost:8000/api/rcp-state")
@@ -790,24 +785,48 @@ useEffect(()=>{
     .then(d=>{ if(d.success) setDbKpiData(d.data); })
     .catch(()=>{});
 
-  // LOT 데이터
-  fetch("http://localhost:8000/api/lot-state")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbLotData(d.data); })
-    .catch(()=>{});
-
-  // EQP 데이터
-  fetch("http://localhost:8000/api/eqp-state")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbEqpData(d.data); })
-    .catch(()=>{});
-
   // RCP 데이터
   fetch("http://localhost:8000/api/rcp-state")
     .then(r=>r.json())
     .then(d=>{ if(d.success) setDbRcpData(d.data); })
     .catch(()=>{});
 }, []);
+
+// EQP_STATE / LOT_STATE 페이징 fetch (탭·페이지·필터 변경 시 재조회)
+useEffect(()=>{
+  if (dbTable==="eqp_state") {
+    const p = new URLSearchParams({page: String(dbPage), page_size:"1000"});
+    if (dbFilterDate!=="all") p.append("date", dbFilterDate);
+    if (dbFilterEqp!=="all")  p.append("eqp_id", dbFilterEqp);
+    fetch(`http://localhost:8000/api/eqp-state?${p}`)
+      .then(r=>r.json())
+      .then(d=>{ if(d.success){ setDbEqpData(d.data); setDbEqpTotal(d.total_count||0); } })
+      .catch(()=>{});
+  } else if (dbTable==="lot_state") {
+    const p = new URLSearchParams({page: String(dbPage), page_size:"1000"});
+    if (dbFilterDate!=="all") p.append("date", dbFilterDate);
+    if (dbFilterEqp!=="all")  p.append("eqp_id", dbFilterEqp);
+    fetch(`http://localhost:8000/api/lot-state?${p}`)
+      .then(r=>r.json())
+      .then(d=>{ if(d.success){ setDbLotData(d.data); setDbLotTotal(d.total_count||0); } })
+      .catch(()=>{});
+  }
+}, [dbTable, dbPage, dbFilterDate, dbFilterEqp]);
+
+// EQP_STATE / LOT_STATE 메타데이터 fetch (탭 전환 시 1회)
+useEffect(()=>{
+  if (dbTable==="eqp_state" && dbEqpMeta.dates.length===0) {
+    fetch("http://localhost:8000/api/eqp-state/meta")
+      .then(r=>r.json())
+      .then(d=>{ if(d.success) setDbEqpMeta({dates:d.dates, eqps:d.eqps}); })
+      .catch(()=>{});
+  } else if (dbTable==="lot_state" && dbLotMeta.dates.length===0) {
+    fetch("http://localhost:8000/api/lot-state/meta")
+      .then(r=>r.json())
+      .then(d=>{ if(d.success) setDbLotMeta({dates:d.dates, eqps:d.eqps}); })
+      .catch(()=>{});
+  }
+}, [dbTable]);
 
   // LLM 전송
   const handleSend = useCallback(async()=>{
@@ -845,13 +864,20 @@ useEffect(()=>{
     dbTable==="eqp_state"||dbTable==="lot_state"    ? (row.event_time?.slice(0,10)??null) : null;
   const dbGetEqp=(row:any):string|null=>
     dbTable==="scenario_map" ? (row.alarm_eqp_id??null) : (row.eqp_id??null);
-  const dbUniqDates=Array.from(new Set(activeDbData.map(dbGetDate).filter(Boolean) as string[])).sort();
-  const dbUniqEqps =Array.from(new Set(activeDbData.map(dbGetEqp).filter(Boolean) as string[])).sort();
-  const filteredDbData=activeDbData.filter(row=>{
+  const isPaged = dbTable==="eqp_state"||dbTable==="lot_state";
+  // paged 테이블은 백엔드에서 필터링 → 클라이언트 필터 스킵
+  const filteredDbData = isPaged ? activeDbData : activeDbData.filter(row=>{
     const dOk=dbFilterDate==="all"||dbGetDate(row)===dbFilterDate;
     const eOk=dbFilterEqp==="all"||dbGetEqp(row)===dbFilterEqp;
     return dOk&&eOk;
   });
+  // 드롭다운 옵션: paged 테이블은 meta 데이터 사용, 나머지는 현재 데이터에서 추출
+  const dbUniqDates=Array.from(new Set(activeDbData.map(dbGetDate).filter(Boolean) as string[])).sort();
+  const dbUniqEqps =Array.from(new Set(activeDbData.map(dbGetEqp).filter(Boolean) as string[])).sort();
+  const filterDates = isPaged ? (dbTable==="eqp_state" ? dbEqpMeta.dates : dbLotMeta.dates) : dbUniqDates;
+  const filterEqps  = isPaged ? (dbTable==="eqp_state" ? dbEqpMeta.eqps  : dbLotMeta.eqps)  : dbUniqEqps;
+  const dbTotalCount = dbTable==="eqp_state" ? dbEqpTotal : dbTable==="lot_state" ? dbLotTotal : activeDbData.length;
+  const dbTotalPages = Math.max(1, Math.ceil(dbTotalCount/1000));
 
   const NAV_ITEMS = [
   {id:"dashboard" as Tab, label:"Dashboard",    desc:"실시간 현황",    icon:"📊"},
@@ -1236,7 +1262,7 @@ useEffect(()=>{
                 {id:"eqp_state"    as DbTable,label:"EQP_STATE",    rows:"3,042"},
                 {id:"lot_state"    as DbTable,label:"LOT_STATE",    rows:"5,771"},
               ]).map(t=>(
-                <button key={t.id} style={{...S.filterBtn,...(dbTable===t.id?S.filterBtnOn:{})}} onClick={()=>{setDbTable(t.id);setDbFilterDate("all");setDbFilterEqp("all");}}>
+                <button key={t.id} style={{...S.filterBtn,...(dbTable===t.id?S.filterBtnOn:{})}} onClick={()=>{setDbTable(t.id);setDbFilterDate("all");setDbFilterEqp("all");setDbPage(1);}}>
                   {t.label}
                   <span style={{fontSize:10,padding:"1px 5px",borderRadius:8,background:dbTable===t.id?"rgba(255,255,255,0.2)":"#e5e7eb",color:dbTable===t.id?"#fff":"#6b7280",marginLeft:5}}>{t.rows}</span>
                 </button>
@@ -1248,22 +1274,43 @@ useEffect(()=>{
               {dbTable!=="rcp_state"&&(
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:12,color:"#6b7280",fontWeight:600}}>날짜</span>
-                  <select value={dbFilterDate} onChange={e=>setDbFilterDate(e.target.value)}
+                  <select value={dbFilterDate}
+                    onChange={e=>{setDbFilterDate(e.target.value); if(isPaged) setDbPage(1);}}
                     style={{fontSize:12,padding:"4px 10px",border:"1px solid #e5e7eb",borderRadius:6,fontFamily:"Pretendard, sans-serif",background:"#fff",color:"#374151",outline:"none"}}>
                     <option value="all">전체</option>
-                    {dbUniqDates.map(d=><option key={d} value={d}>{d}</option>)}
+                    {filterDates.map(d=><option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
               )}
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontSize:12,color:"#6b7280",fontWeight:600}}>EQP</span>
-                <select value={dbFilterEqp} onChange={e=>setDbFilterEqp(e.target.value)}
+                <select value={dbFilterEqp}
+                  onChange={e=>{setDbFilterEqp(e.target.value); if(isPaged) setDbPage(1);}}
                   style={{fontSize:12,padding:"4px 10px",border:"1px solid #e5e7eb",borderRadius:6,fontFamily:"Pretendard, sans-serif",background:"#fff",color:"#374151",outline:"none"}}>
                   <option value="all">전체</option>
-                  {dbUniqEqps.map(e=><option key={e} value={e}>{e}</option>)}
+                  {filterEqps.map(e=><option key={e} value={e}>{e}</option>)}
                 </select>
               </div>
-              <span style={{fontSize:11,color:"#9ca3af",marginLeft:"auto"}}>{filteredDbData.length}행 표시 / 전체 {activeDbData.length}행</span>
+              <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:11,color:"#9ca3af"}}>
+                  {filteredDbData.length}행 표시 / 전체 {dbTotalCount}행
+                </span>
+                {isPaged&&(
+                  <div style={{display:"flex",alignItems:"center",gap:5}}>
+                    <button disabled={dbPage<=1} onClick={()=>setDbPage(p=>p-1)}
+                      style={{fontSize:11,padding:"3px 10px",borderRadius:5,border:"1px solid #e5e7eb",background:dbPage<=1?"#f3f4f6":"#fff",cursor:dbPage<=1?"default":"pointer",color:dbPage<=1?"#9ca3af":"#374151"}}>
+                      이전
+                    </button>
+                    <span style={{fontSize:12,color:"#374151",minWidth:70,textAlign:"center" as const,fontWeight:600}}>
+                      {dbPage} / {dbTotalPages} 페이지
+                    </span>
+                    <button disabled={dbPage>=dbTotalPages} onClick={()=>setDbPage(p=>p+1)}
+                      style={{fontSize:11,padding:"3px 10px",borderRadius:5,border:"1px solid #e5e7eb",background:dbPage>=dbTotalPages?"#f3f4f6":"#fff",cursor:dbPage>=dbTotalPages?"default":"pointer",color:dbPage>=dbTotalPages?"#9ca3af":"#374151"}}>
+                      다음
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* KPI_DAILY */}
