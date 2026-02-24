@@ -397,7 +397,7 @@ const AlarmCenter: React.FC = () => {
                 <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>{label}</div>
                 <div style={{ fontSize: '12px', color: '#9ca3af' }}>T: {t}</div>
                 <div style={{
-                  fontSize: '22px', fontWeight: 800, fontFamily: 'Roboto Mono, monospace',
+                  fontSize: '22px', fontWeight: 800, fontFamily: 'Pretendard, sans-serif',
                   color: alarm ? '#ef4444' : '#111827', marginTop: '4px',
                 }}>
                   A: {v}
@@ -439,10 +439,10 @@ const AlarmCenter: React.FC = () => {
               <tbody>
                 {LATEST_ALARM.eqpStateRows.map((row, i) => (
                   <tr key={i} style={{ background: row.state === 'DOWN' ? '#fef2f2' : '#fff', borderTop: '1px solid #f3f4f6' }}>
-                    <td style={{ padding: '10px 14px', fontFamily: 'Roboto Mono, monospace', fontSize: '12px' }}>{row.time}</td>
+                    <td style={{ padding: '10px 14px', fontFamily: 'Pretendard, sans-serif', fontSize: '12px' }}>{row.time}</td>
                     <td style={{ padding: '10px 14px' }}><StateBadge state={row.state} /></td>
-                    <td style={{ padding: '10px 14px', fontFamily: 'Roboto Mono, monospace', fontSize: '12px' }}>{row.lotId}</td>
-                    <td style={{ padding: '10px 14px', fontFamily: 'Roboto Mono, monospace', fontSize: '12px' }}>{row.rcp}</td>
+                    <td style={{ padding: '10px 14px', fontFamily: 'Pretendard, sans-serif', fontSize: '12px' }}>{row.lotId}</td>
+                    <td style={{ padding: '10px 14px', fontFamily: 'Pretendard, sans-serif', fontSize: '12px' }}>{row.rcp}</td>
                   </tr>
                 ))}
               </tbody>
@@ -502,7 +502,7 @@ const AlarmCenter: React.FC = () => {
               onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
             >
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                <span style={{ fontSize: '13px', color: '#9ca3af', fontFamily: 'Roboto Mono, monospace', width: '80px' }}>
+                <span style={{ fontSize: '13px', color: '#9ca3af', fontFamily: 'Pretendard, sans-serif', width: '80px' }}>
                   {report.date}
                 </span>
                 <span style={{
@@ -600,7 +600,7 @@ const AlarmCenter: React.FC = () => {
             <pre style={{
               background: '#f9fafb', border: '1px solid #e5e7eb',
               borderRadius: '8px', padding: '20px',
-              fontSize: '12px', fontFamily: 'Roboto Mono, monospace',
+              fontSize: '12px', fontFamily: 'Pretendard, sans-serif',
               whiteSpace: 'pre-wrap', lineHeight: 1.8,
               color: '#111827', marginBottom: '20px',
             }}>

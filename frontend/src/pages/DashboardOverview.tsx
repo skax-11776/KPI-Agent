@@ -48,7 +48,7 @@ const DashboardOverview: React.FC = () => {
             <div style={{ fontSize: '14px', opacity: 0.7, marginBottom: '4px' }}>
               마지막 업데이트
             </div>
-            <div style={{ fontSize: '16px', fontFamily: 'Roboto Mono' }}>
+            <div style={{ fontSize: '16px', fontFamily: 'Pretendard' }}>
               {new Date().toLocaleString('ko-KR')}
             </div>
           </div>
