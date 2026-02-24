@@ -590,9 +590,37 @@ function AnalyticsPage({reports}: {reports: any[]}) {
   );
 }
 
-function SettingsPage() {
-  const [thresholds, setThresholds] = React.useState({oee_min:70,thp_min:250,tat_max:3.5,wip_min:200,wip_max:300});
+type Thresholds = {oee_min:number;thp_min:number;tat_max:number;wip_min:number;wip_max:number};
+
+function SettingsPage({thresholds,setThresholds}:{thresholds:Thresholds;setThresholds:React.Dispatch<React.SetStateAction<Thresholds>>}) {
   const [saved, setSaved] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState("");
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError("");
+    try {
+      const res = await fetch("http://localhost:8000/api/system/settings/targets", {
+        method: "PUT",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(thresholds),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({detail:`HTTP ${res.status}`}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "업데이트 실패");
+      setSaved(true);
+      setTimeout(()=>setSaved(false), 2000);
+    } catch(e: any) {
+      setSaveError(e.message || "저장 실패");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div style={{padding:"24px 32px",maxWidth:600}}>
       <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"24px 28px",marginBottom:20}}>
@@ -614,10 +642,11 @@ function SettingsPage() {
             </div>
           </div>
         ))}
-        <button onClick={()=>{setSaved(true);setTimeout(()=>setSaved(false),2000);}}
-          style={{width:"100%",padding:"12px",borderRadius:8,border:"none",background:saved?"#22c55e":"#0f172a",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
-          {saved?"✅ 저장되었습니다!":"설정 저장"}
+        <button onClick={handleSave} disabled={saving}
+          style={{width:"100%",padding:"12px",borderRadius:8,border:"none",background:saved?"#22c55e":saveError?"#dc2626":"#0f172a",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+          {saved?"저장되었습니다!":saving?"저장 중...":"설정 저장"}
         </button>
+        {saveError&&<div style={{marginTop:8,fontSize:12,color:"#dc2626",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:6,padding:"6px 10px"}}>{saveError}</div>}
       </div>
       <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"20px 24px"}}>
         <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>시스템 정보</div>
@@ -645,6 +674,7 @@ export default function App() {
 
   const [activeTab, setActiveTab]     = useState<Tab>("dashboard");
   const [alarmSub,  setAlarmSub]      = useState<AlarmSub>("latest");
+  const [thresholds, setThresholds]   = useState<Thresholds>({oee_min:70,thp_min:250,tat_max:3.5,wip_min:200,wip_max:300});
   const [dbTable,   setDbTable]       = useState<DbTable>("kpi_daily");
   const [selReport, setSelReport]     = useState<Report|null>(null);
   const [latestSaved, setLatestSaved] = useState(false);
@@ -660,6 +690,8 @@ export default function App() {
   const [dbRcpData, setDbRcpData] = useState<any[]>([]);
   const [dbScenarioData, setDbScenarioData] = useState<any[]>([]);
   const [dashboardSummary, setDashboardSummary] = useState<any>(null);
+  const [dbFilterDate, setDbFilterDate] = useState<string>("all");
+  const [dbFilterEqp,  setDbFilterEqp]  = useState<string>("all");
 
 // PDF 목록 로드 (컴포넌트 마운트 시 + 저장/삭제 후)
 useEffect(()=>{
@@ -714,19 +746,19 @@ useEffect(()=>{
   const chatEnd = useRef<HTMLDivElement>(null);
 
   // 실시간 KPI
-  const [kpi, setKpi] = useState<LiveKPI>({oee:68.3,thp:229,tat:2.47,wip:256,oee_prev:68.6,thp_prev:231,tat_prev:2.45,wip_prev:255});
+  const [kpi, setKpi] = useState<LiveKPI>({oee:70,thp:229,tat:2.47,wip:256,oee_prev:70,thp_prev:231,tat_prev:2.45,wip_prev:255});
   const [rt,  setRt]  = useState<RealtimePoint[]>([]);
   const chartRef = useRef<HTMLDivElement>(null);
   const [chartW, setChartW] = useState(900);
 
   useEffect(()=>{
-    setRt(Array.from({length:60},()=>({time:nowTime(),oee:jitter(68,8),thp:Math.round(jitter(235,20)),tat:jitter(2.5,0.5),wip:Math.round(jitter(250,20))})));
+    setRt(Array.from({length:60},()=>({time:nowTime(),oee:jitter(74,8),thp:Math.round(jitter(235,20)),tat:jitter(2.5,0.5),wip:Math.round(jitter(250,20))})));
   },[]);
 
   useEffect(()=>{
     const iv=setInterval(()=>{
-      setKpi(p=>{const o=jitter(p.oee,1.2),t=Math.round(jitter(p.thp,4)),ta=jitter(p.tat,0.08),w=Math.round(jitter(p.wip,6));return{oee:o,thp:t,tat:ta,wip:w,oee_prev:p.oee,thp_prev:p.thp,tat_prev:p.tat,wip_prev:p.wip};});
-      setRt(p=>[...p.slice(-59),{time:nowTime(),oee:jitter(68,8),thp:Math.round(jitter(235,20)),tat:jitter(2.5,0.5),wip:Math.round(jitter(250,20))}]);
+      setKpi(p=>{const o=jitter(74,8),t=Math.round(jitter(p.thp,4)),ta=jitter(p.tat,0.08),w=Math.round(jitter(p.wip,6));return{oee:o,thp:t,tat:ta,wip:w,oee_prev:p.oee,thp_prev:p.thp,tat_prev:p.tat,wip_prev:p.wip};});
+      setRt(p=>[...p.slice(-59),{time:nowTime(),oee:jitter(74,8),thp:Math.round(jitter(235,20)),tat:jitter(2.5,0.5),wip:Math.round(jitter(250,20))}]);
     },500);
     return()=>clearInterval(iv);
   },[]);
@@ -801,6 +833,26 @@ useEffect(()=>{
     return{arrow:up?"▲":"▼",color:good?"#16a34a":"#dc2626",val:Math.abs(cur-prev).toFixed(2)};
   };
 
+  // ── DB 필터 헬퍼 ──────────────────────────────────────────────
+  const activeDbData =
+    dbTable==="kpi_daily"    ? (dbKpiData.length>0?dbKpiData:DB_KPI_DAILY) :
+    dbTable==="scenario_map" ? (dbScenarioData.length>0?dbScenarioData:DB_SCENARIO_MAP) :
+    dbTable==="rcp_state"    ? (dbRcpData.length>0?dbRcpData:DB_RCP_STATE) :
+    dbTable==="eqp_state"    ? (dbEqpData.length>0?dbEqpData:DB_EQP_STATE) :
+                               (dbLotData.length>0?dbLotData:DB_LOT_STATE);
+  const dbGetDate=(row:any):string|null=>
+    dbTable==="kpi_daily"||dbTable==="scenario_map" ? (row.date??null) :
+    dbTable==="eqp_state"||dbTable==="lot_state"    ? (row.event_time?.slice(0,10)??null) : null;
+  const dbGetEqp=(row:any):string|null=>
+    dbTable==="scenario_map" ? (row.alarm_eqp_id??null) : (row.eqp_id??null);
+  const dbUniqDates=Array.from(new Set(activeDbData.map(dbGetDate).filter(Boolean) as string[])).sort();
+  const dbUniqEqps =Array.from(new Set(activeDbData.map(dbGetEqp).filter(Boolean) as string[])).sort();
+  const filteredDbData=activeDbData.filter(row=>{
+    const dOk=dbFilterDate==="all"||dbGetDate(row)===dbFilterDate;
+    const eOk=dbFilterEqp==="all"||dbGetEqp(row)===dbFilterEqp;
+    return dOk&&eOk;
+  });
+
   const NAV_ITEMS = [
   {id:"dashboard" as Tab, label:"Dashboard",    desc:"실시간 현황",    icon:"📊"},
   {id:"alarms"    as Tab, label:"Alarm Center", desc:"최신·과거 알람", icon:"🔔"},
@@ -871,10 +923,10 @@ useEffect(()=>{
   <div style={{display:"flex",alignItems:"center",gap:10}}>
     
     {[
-  {label:"OEE", val:`${(dashboardSummary?.oee_v ?? kpi.oee).toFixed(1)}%`, bad:(dashboardSummary?.oee_v ?? kpi.oee)<70, color:"#2563eb"},
-  {label:"THP", val:String(dashboardSummary?.thp_v ?? kpi.thp), bad:(dashboardSummary?.thp_v ?? kpi.thp)<228, color:"#059669"},
-  {label:"TAT", val:`${(dashboardSummary?.tat_v ?? kpi.tat).toFixed(2)}h`, bad:(dashboardSummary?.tat_v ?? kpi.tat)>3.5, color:"#d97706"},
-  {label:"WIP", val:String(dashboardSummary?.wip_v ?? kpi.wip), bad:false, color:"#7c3aed"},
+  {label:"OEE", val:`${(dashboardSummary?.oee_v ?? kpi.oee).toFixed(1)}%`, bad:(dashboardSummary?.oee_v ?? kpi.oee)<thresholds.oee_min, color:"#2563eb"},
+  {label:"THP", val:String(dashboardSummary?.thp_v ?? kpi.thp), bad:(dashboardSummary?.thp_v ?? kpi.thp)<thresholds.thp_min, color:"#059669"},
+  {label:"TAT", val:`${(dashboardSummary?.tat_v ?? kpi.tat).toFixed(2)}h`, bad:(dashboardSummary?.tat_v ?? kpi.tat)>thresholds.tat_max, color:"#d97706"},
+  {label:"WIP", val:String(dashboardSummary?.wip_v ?? kpi.wip), bad:(dashboardSummary?.wip_v ?? kpi.wip)<thresholds.wip_min||(dashboardSummary?.wip_v ?? kpi.wip)>thresholds.wip_max, color:"#7c3aed"},
 ].map(({label,val,bad,color})=>(
   <div key={label} style={{
     padding:"5px 12px", borderRadius:8,
@@ -898,10 +950,10 @@ useEffect(()=>{
             <SL>실시간 KPI 현황</SL>
             <div style={S.rtGrid}>
               {([
-                {label:"OEE",sub:"Overall Equipment Effectiveness",val:`${kpi.oee.toFixed(1)}%`,cur:kpi.oee,prev:kpi.oee_prev,tgt:"목표 70%",bad:kpi.oee<70,inv:false},
-                {label:"THP",sub:"Throughput (UPH)",val:String(kpi.thp),cur:kpi.thp,prev:kpi.thp_prev,tgt:"목표 250",bad:kpi.thp<228,inv:false},
-                {label:"TAT",sub:"Turn-Around Time",val:`${kpi.tat.toFixed(2)}h`,cur:kpi.tat,prev:kpi.tat_prev,tgt:"목표 <3.5h",bad:kpi.tat>3.5,inv:true},
-                {label:"WIP",sub:"Work In Process",val:String(kpi.wip),cur:kpi.wip,prev:kpi.wip_prev,tgt:"목표 250EA",bad:false,inv:false},
+                {label:"OEE",sub:"Overall Equipment Effectiveness",val:`${kpi.oee.toFixed(1)}%`,cur:kpi.oee,prev:kpi.oee_prev,tgt:`목표 ${thresholds.oee_min}%`,bad:kpi.oee<thresholds.oee_min,inv:false},
+                {label:"THP",sub:"Throughput (UPH)",val:String(kpi.thp),cur:kpi.thp,prev:kpi.thp_prev,tgt:`목표 ${thresholds.thp_min}`,bad:kpi.thp<thresholds.thp_min,inv:false},
+                {label:"TAT",sub:"Turn-Around Time",val:`${kpi.tat.toFixed(2)}h`,cur:kpi.tat,prev:kpi.tat_prev,tgt:`목표 <${thresholds.tat_max}h`,bad:kpi.tat>thresholds.tat_max,inv:true},
+                {label:"WIP",sub:"Work In Process",val:String(kpi.wip),cur:kpi.wip,prev:kpi.wip_prev,tgt:`목표 ${thresholds.wip_min}~${thresholds.wip_max}EA`,bad:kpi.wip<thresholds.wip_min||kpi.wip>thresholds.wip_max,inv:false},
               ]).map((c,i)=>{
                 const d=delta(c.cur,c.prev,c.inv);
                 return(
@@ -924,7 +976,7 @@ useEffect(()=>{
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>실시간 KPI 트렌드</div>
-                  <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>최근 60초 슬라이딩 윈도우 · 0.5초 업데이트</div>
+                  <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{/*최근 60초 슬라이딩 윈도우 · 0.5초 업데이트*/}</div>
                 </div>
                 <div style={{display:"flex",gap:14,alignItems:"center"}}>
                   {[{c:"#2563eb",l:"OEE"},{c:"#10b981",l:"THP"},{c:"#f59e0b",l:"TAT"},{c:"#8b5cf6",l:"WIP"}].map(({c,l})=>(
@@ -1184,11 +1236,34 @@ useEffect(()=>{
                 {id:"eqp_state"    as DbTable,label:"EQP_STATE",    rows:"3,042"},
                 {id:"lot_state"    as DbTable,label:"LOT_STATE",    rows:"5,771"},
               ]).map(t=>(
-                <button key={t.id} style={{...S.filterBtn,...(dbTable===t.id?S.filterBtnOn:{})}} onClick={()=>setDbTable(t.id)}>
+                <button key={t.id} style={{...S.filterBtn,...(dbTable===t.id?S.filterBtnOn:{})}} onClick={()=>{setDbTable(t.id);setDbFilterDate("all");setDbFilterEqp("all");}}>
                   {t.label}
                   <span style={{fontSize:10,padding:"1px 5px",borderRadius:8,background:dbTable===t.id?"rgba(255,255,255,0.2)":"#e5e7eb",color:dbTable===t.id?"#fff":"#6b7280",marginLeft:5}}>{t.rows}</span>
                 </button>
               ))}
+            </div>
+
+            {/* 날짜 · EQP 필터 바 */}
+            <div style={{display:"flex",gap:12,marginBottom:16,alignItems:"center",flexWrap:"wrap" as const,padding:"10px 14px",background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8}}>
+              {dbTable!=="rcp_state"&&(
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:12,color:"#6b7280",fontWeight:600}}>날짜</span>
+                  <select value={dbFilterDate} onChange={e=>setDbFilterDate(e.target.value)}
+                    style={{fontSize:12,padding:"4px 10px",border:"1px solid #e5e7eb",borderRadius:6,fontFamily:"Pretendard, sans-serif",background:"#fff",color:"#374151",outline:"none"}}>
+                    <option value="all">전체</option>
+                    {dbUniqDates.map(d=><option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              )}
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:12,color:"#6b7280",fontWeight:600}}>EQP</span>
+                <select value={dbFilterEqp} onChange={e=>setDbFilterEqp(e.target.value)}
+                  style={{fontSize:12,padding:"4px 10px",border:"1px solid #e5e7eb",borderRadius:6,fontFamily:"Pretendard, sans-serif",background:"#fff",color:"#374151",outline:"none"}}>
+                  <option value="all">전체</option>
+                  {dbUniqEqps.map(e=><option key={e} value={e}>{e}</option>)}
+                </select>
+              </div>
+              <span style={{fontSize:11,color:"#9ca3af",marginLeft:"auto"}}>{filteredDbData.length}행 표시 / 전체 {activeDbData.length}행</span>
             </div>
 
             {/* KPI_DAILY */}
@@ -1208,7 +1283,7 @@ useEffect(()=>{
                       </tr>
                     </thead>
                     <tbody>
-                      {(dbKpiData.length > 0 ? dbKpiData : DB_KPI_DAILY).map((row,i)=>(
+                      {filteredDbData.map((row,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:row.alarm_flag===1?"#fefce8":"#fff"}}>
                           <td style={{padding:"8px 12px",color:"#374151",whiteSpace:"nowrap" as const}}>{row.date}</td>
                           <td style={{padding:"8px 12px",fontWeight:700}}>{row.eqp_id}</td>
@@ -1244,7 +1319,7 @@ useEffect(()=>{
                     {["date","alarm_eqp_id","alarm_kpi"].map(h=><th key={h} style={{padding:"10px 16px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",letterSpacing:0.5}}>{h}</th>)}
                   </tr></thead>
                   <tbody>
-                    {(dbScenarioData.length > 0 ? dbScenarioData : DB_SCENARIO_MAP).map((row,i)=>{
+                    {filteredDbData.map((row,i)=>{
                       const meta=KPI_META[row.alarm_kpi];
                       return(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
@@ -1271,7 +1346,7 @@ useEffect(()=>{
                     {["rcp_id","eqp_id","complex_level"].map(h=><th key={h} style={{padding:"10px 16px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",letterSpacing:0.5}}>{h}</th>)}
                   </tr></thead>
                   <tbody>
-                    {(dbRcpData.length > 0 ? dbRcpData : DB_RCP_STATE).map((row,i)=>(
+                    {filteredDbData.map((row,i)=>(
                       <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                         <td style={{padding:"10px 16px",fontFamily:"Pretendard, sans-serif",color:"#374151"}}>{row.rcp_id}</td>
                         <td style={{padding:"10px 16px",fontWeight:700,fontFamily:"Pretendard, sans-serif"}}>{row.eqp_id}</td>
@@ -1293,7 +1368,7 @@ useEffect(()=>{
             {dbTable==="eqp_state"&&(
               <div style={S.tableWrap}>
                 <div style={S.tableHeader}>
-                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>EQP_STATE — 장비 상태 이벤트 (2026-01-31 EQP12 샘플)</span>
+                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>EQP_STATE — 장비 상태 이벤트</span>
                   <span style={{fontSize:11,color:"#9ca3af"}}>총 3,042 rows</span>
                 </div>
                 <div style={{overflowX:"auto" as const}}>
@@ -1302,10 +1377,10 @@ useEffect(()=>{
                       {["event_time","end_time","eqp_id","line","oper","lot_id","rcp_id","state"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",whiteSpace:"nowrap" as const}}>{h}</th>)}
                     </tr></thead>
                     <tbody>
-                      {(dbEqpData.length > 0 ? dbEqpData : DB_EQP_STATE).map((row,i)=>(
+                      {filteredDbData.map((row,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:row.eqp_state==="DOWN"?"#fef2f2":i%2===0?"#fff":"#fafafa"}}>
-                          <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.event_time.slice(11)}</td>
-                          <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#6b7280"}}>{row.end_time.slice(11)}</td>
+                          <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.event_time}</td>
+                          <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#6b7280"}}>{row.end_time}</td>
                           <td style={{padding:"8px 12px",fontWeight:700}}>{row.eqp_id}</td>
                           <td style={{padding:"8px 12px",color:"#6b7280"}}>{row.line_id}</td>
                           <td style={{padding:"8px 12px",color:"#6b7280"}}>{row.oper_id}</td>
@@ -1324,7 +1399,7 @@ useEffect(()=>{
             {dbTable==="lot_state"&&(
               <div style={S.tableWrap}>
                 <div style={S.tableHeader}>
-                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>LOT_STATE — LOT 처리 이력 (2026-01-31 EQP12 샘플)</span>
+                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>LOT_STATE — LOT 처리 이력</span>
                   <span style={{fontSize:11,color:"#9ca3af"}}>총 5,771 rows</span>
                 </div>
                 <div style={{overflowX:"auto" as const}}>
@@ -1333,9 +1408,9 @@ useEffect(()=>{
                       {["event_time","lot_id","line","oper","eqp_id","rcp_id","lot_state","in_cnt","hold","scrap"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",whiteSpace:"nowrap" as const}}>{h}</th>)}
                     </tr></thead>
                     <tbody>
-                      {(dbLotData.length > 0 ? dbLotData : DB_LOT_STATE).map((row,i)=>(
+                      {filteredDbData.map((row,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:row.lot_state==="HOLD"?"#fef2f2":i%2===0?"#fff":"#fafafa"}}>
-                          <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.event_time.slice(11)}</td>
+                          <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.event_time}</td>
                           <td style={{padding:"8px 12px",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.lot_id}</td>
                           <td style={{padding:"8px 12px",color:"#6b7280"}}>{row.line_id}</td>
                           <td style={{padding:"8px 12px",color:"#6b7280"}}>{row.oper_id}</td>
@@ -1438,7 +1513,7 @@ ${LATEST_ALARM.scenarios.map((s,i)=>`${i+1}. ${s}`).join("\n")}`;
   </div>
 )}
 {activeTab==="analytics"&&<AnalyticsPage reports={historyList}/>}
-        {activeTab==="settings"&&<SettingsPage/>}
+        {activeTab==="settings"&&<SettingsPage thresholds={thresholds} setThresholds={setThresholds}/>}
       </main>
 
       {selReport&&<ReportPanel report={selReport} onClose={()=>setSelReport(null)}/>}
