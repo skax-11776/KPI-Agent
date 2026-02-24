@@ -84,8 +84,8 @@ class AWSConfig:
         # 요청 본문
         body = {
             "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": max_tokens,
-            "temperature": temperature,
+            "max_tokens": 2048,
+            "temperature": 0.7,
             "messages": messages
         }
         
