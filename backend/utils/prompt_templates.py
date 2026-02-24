@@ -89,43 +89,35 @@ def get_report_writer_prompt(
 """
 
 
-def get_question_answer_prompt(
-    question: str,
-    similar_reports: list
-) -> str:
-    """
-    과거 리포트 기반 질문 답변을 위한 프롬프트를 생성합니다.
+def get_question_answer_prompt(question: str, similar_reports: list) -> str:
     
-    Args:
-        question: 사용자 질문
-        similar_reports: 유사한 과거 리포트 리스트
-    
-    Returns:
-        str: 프롬프트 문자열
-    """
-    # 유사 리포트 포맷팅
+    # 참고 보고서 텍스트 구성 (출처 명확히)
     reports_text = ""
     for i, report in enumerate(similar_reports, 1):
-        reports_text += f"\n### 참고 리포트 {i}\n"
-        reports_text += f"**날짜:** {report['metadata'].get('date')}\n"
-        reports_text += f"**장비:** {report['metadata'].get('eqp_id')}\n"
-        reports_text += f"**KPI:** {report['metadata'].get('kpi')}\n"
-        reports_text += f"**내용:**\n{report['document'][:500]}...\n"
-    
-    return f"""당신은 제조 라인 KPI 분석 전문가입니다.
-사용자의 질문에 과거 분석 리포트를 참고하여 답변해주세요.
+        meta = report['metadata']
+        reports_text += f"\n### 📄 참고 보고서 {i}"
+        reports_text += f" | {meta.get('date','?')} | {meta.get('eqp_id','?')} | KPI: {meta.get('kpi','?')}\n"
+        reports_text += f"{report['document'][:800]}\n"
+        reports_text += "---\n"
+
+    reports_section = reports_text if reports_text else "※ 유사한 과거 보고서가 없습니다."
+
+    return f"""당신은 제조 라인 KPI 분석 전문가 AI입니다.
+과거 분석 보고서를 참고하되, 자유롭게 전문가 관점에서 답변하세요.
+보고서에 없는 내용도 KPI 지식을 바탕으로 답변할 수 있습니다.
 
 ## 사용자 질문
 {question}
 
-## 참고할 과거 리포트
-{reports_text if reports_text else "관련된 과거 리포트가 없습니다."}
+## 참고 가능한 과거 보고서 (ChromaDB 검색 결과)
+{reports_section}
 
-**답변 요구사항:**
-1. 과거 리포트의 내용을 참고하여 답변
-2. 구체적인 사례와 수치 포함
-3. 명확하고 실용적인 조언 제공
-4. 답변 출처 명시 (어떤 리포트 참고했는지)
+## 답변 지침
+1. 질문에 직접적으로 답변하세요
+2. 과거 보고서를 참고했다면 "📄 [날짜] [장비] 보고서 참고" 형식으로 출처를 명시하세요
+3. 보고서에 없는 내용은 전문가 지식으로 자유롭게 보완하세요
+4. 날씨, 주식 등 제조와 무관한 질문은 "저는 KPI 분석 전문가라 해당 질문은 답변이 어렵습니다" 라고만 짧게 답하세요. 절대 보고서 내용을 억지로 연결하지 마세요.
+5. 답변은 명확하고 실용적으로 작성하세요
 
-**답변을 작성해주세요:**
+## 답변:
 """

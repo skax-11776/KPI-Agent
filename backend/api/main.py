@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from typing import List
 import boto3, json, os
 from dotenv import load_dotenv
+from backend.graph.workflow import run_alarm_analysis, run_question_answer
+from backend.api.routes import alarm, question, system, reports, supabase
 
 load_dotenv()
 
@@ -44,7 +46,8 @@ app.add_middleware(
 app.include_router(alarm.router, prefix="/api")
 app.include_router(question.router, prefix="/api")
 app.include_router(system.router, prefix="/api")
-app.include_router(reports.router, prefix="/api")  # ← 여기로 이동
+app.include_router(reports.router, prefix="/api")  
+app.include_router(supabase.router, prefix="/api")
 
 # ── Bedrock 채팅 엔드포인트 ──────────────────────────────────────
 class Message(BaseModel):
@@ -54,27 +57,61 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     messages: List[Message]
     system: str = ""
+    mode: str = "question"        
+    alarm_date: str = ""          
+    alarm_eqp_id: str = ""        
+    alarm_kpi: str = ""           
 
+# 기존 /api/chat 엔드포인트 전체 교체
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
-    client = boto3.client(
-        "bedrock-runtime",
-        region_name=os.getenv("AWS_REGION", "us-east-1"),
-        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-    )
-    body = {
-        "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": 1024,
-        "system": req.system,
-        "messages": [{"role": m.role, "content": m.content} for m in req.messages],
-    }
-    response = client.invoke_model(
-        modelId=os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0"),
-        body=json.dumps(body),
-    )
-    result = json.loads(response["body"].read())
-    return {"content": result["content"][0]["text"]}
+    try:
+        # ── 알람 분석 모드 ──────────────────────────
+        if req.mode == "alarm":
+            print(f"🔔 알람 분석 모드: {req.alarm_eqp_id} / {req.alarm_kpi}")
+            final_state = run_alarm_analysis(
+                alarm_date=req.alarm_date or None,
+                alarm_eqp_id=req.alarm_eqp_id or None,
+                alarm_kpi=req.alarm_kpi or None,
+            )
+            # 결과 반환
+            if final_state.get("error"):
+                return {"content": f"분석 오류: {final_state['error']}"}
+            
+            root_causes = final_state.get("root_causes", [])
+            report = final_state.get("final_report", "")
+            causes_text = "\n".join([
+                f"{i+1}. {c['cause']} (확률: {c['probability']}%)"
+                for i, c in enumerate(root_causes)
+            ])
+            return {
+                "content": report or causes_text or "분석 완료",
+                "root_causes": root_causes,
+                "report_id": final_state.get("report_id"),
+                "rag_saved": final_state.get("rag_saved", False),
+            }
+
+        # ── 질문 응답 모드 ──────────────────────────
+        else:
+            # 마지막 사용자 메시지 추출
+            user_message = next(
+                (m.content for m in reversed(req.messages) if m.role == "user"),
+                ""
+            )
+            print(f"💬 질문 모드: {user_message[:50]}")
+            final_state = run_question_answer(user_message)
+
+            if final_state.get("error"):
+                return {"content": f"응답 오류: {final_state['error']}"}
+
+            return {
+                "content": final_state.get("final_answer", "답변을 생성하지 못했습니다."),
+                "similar_reports": final_state.get("similar_reports", []),
+            }
+
+    except Exception as e:
+        print(f"❌ /api/chat 오류: {e}")
+        return {"content": f"서버 오류: {str(e)}"}
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

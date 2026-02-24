@@ -251,6 +251,7 @@ async function callLLM(messages:{role:string;content:string}[]):Promise<{text:st
       body: JSON.stringify({
         messages: messages,
         system: SYSTEM_PROMPT,
+        mode: "question",
       }),
     });
     if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
@@ -653,6 +654,12 @@ export default function App() {
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [historyList, setHistoryList] = useState(REPORTS);
   const [pdfFiles, setPdfFiles] = useState<{filename:string;size:number;created_at:string}[]>([]);
+  const [dbKpiData, setDbKpiData] = useState<any[]>([]);
+  const [dbLotData, setDbLotData] = useState<any[]>([]);
+  const [dbEqpData, setDbEqpData] = useState<any[]>([]);
+  const [dbRcpData, setDbRcpData] = useState<any[]>([]);
+  const [dbScenarioData, setDbScenarioData] = useState<any[]>([]);
+  const [dashboardSummary, setDashboardSummary] = useState<any>(null);
 
 // PDF 목록 로드 (컴포넌트 마운트 시 + 저장/삭제 후)
 useEffect(()=>{
@@ -661,6 +668,38 @@ useEffect(()=>{
     fetchReportList().then(setPdfFiles);
   }, 5000);  // 5초마다 폴더 스캔
   return () => clearInterval(interval);
+}, []);
+// Supabase 데이터 로드
+useEffect(()=>{
+  fetch("http://localhost:8000/api/dashboard-summary")
+    .then(r=>r.json())
+    .then(d=>{ if(d.success) setDashboardSummary(d.latest); })
+    .catch(()=>{});
+
+  fetch("http://localhost:8000/api/kpi-daily")
+    .then(r=>r.json())
+    .then(d=>{ if(d.success) setDbKpiData(d.data); })
+    .catch(()=>{});
+
+  fetch("http://localhost:8000/api/scenario-map")
+    .then(r=>r.json())
+    .then(d=>{ if(d.success) setDbScenarioData(d.data); })
+    .catch(()=>{});
+
+  fetch("http://localhost:8000/api/lot-state")
+    .then(r=>r.json())
+    .then(d=>{ if(d.success) setDbLotData(d.data); })
+    .catch(()=>{});
+
+  fetch("http://localhost:8000/api/eqp-state")
+    .then(r=>r.json())
+    .then(d=>{ if(d.success) setDbEqpData(d.data); })
+    .catch(()=>{});
+
+  fetch("http://localhost:8000/api/rcp-state")
+    .then(r=>r.json())
+    .then(d=>{ if(d.success) setDbRcpData(d.data); })
+    .catch(()=>{});
 }, []);
 
   // 챗봇
@@ -705,6 +744,38 @@ useEffect(()=>{
   }, [activeTab]); // ← activeTab 추가가 핵심!
 
   useEffect(()=>{ chatEnd.current?.scrollIntoView({behavior:"smooth"}); },[msgs]);
+
+  useEffect(()=>{
+  // 대시보드 요약
+  fetch("http://localhost:8000/api/dashboard-summary")
+    .then(r=>r.json())
+    .then(d=>{ if(d.success) setDashboardSummary(d.latest); })
+    .catch(()=>{});
+
+  // KPI 전체 데이터
+  fetch("http://localhost:8000/api/kpi-daily")
+    .then(r=>r.json())
+    .then(d=>{ if(d.success) setDbKpiData(d.data); })
+    .catch(()=>{});
+
+  // LOT 데이터
+  fetch("http://localhost:8000/api/lot-state")
+    .then(r=>r.json())
+    .then(d=>{ if(d.success) setDbLotData(d.data); })
+    .catch(()=>{});
+
+  // EQP 데이터
+  fetch("http://localhost:8000/api/eqp-state")
+    .then(r=>r.json())
+    .then(d=>{ if(d.success) setDbEqpData(d.data); })
+    .catch(()=>{});
+
+  // RCP 데이터
+  fetch("http://localhost:8000/api/rcp-state")
+    .then(r=>r.json())
+    .then(d=>{ if(d.success) setDbRcpData(d.data); })
+    .catch(()=>{});
+}, []);
 
   // LLM 전송
   const handleSend = useCallback(async()=>{
@@ -800,17 +871,17 @@ useEffect(()=>{
   <div style={{display:"flex",alignItems:"center",gap:10}}>
     
     {[
-      {label:"OEE", val:`${kpi.oee.toFixed(1)}%`, bad:kpi.oee<70, color:"#2563eb"},
-      {label:"THP", val:String(kpi.thp),           bad:kpi.thp<228, color:"#059669"},
-      {label:"TAT", val:`${kpi.tat.toFixed(2)}h`,  bad:kpi.tat>3.5, color:"#d97706"},
-      {label:"WIP", val:String(kpi.wip),           bad:false,        color:"#7c3aed"},
-    ].map(({label,val,bad,color})=>(
-      <div key={label} style={{
-        padding:"5px 12px", borderRadius:8,
-        background: bad?"#fee2e2":"#f8fafc",
-        border:`1px solid ${bad?"#fecaca":"#e2e8f0"}`,
-        display:"flex", alignItems:"center", gap:6,
-      }}>
+  {label:"OEE", val:`${(dashboardSummary?.oee_v ?? kpi.oee).toFixed(1)}%`, bad:(dashboardSummary?.oee_v ?? kpi.oee)<70, color:"#2563eb"},
+  {label:"THP", val:String(dashboardSummary?.thp_v ?? kpi.thp), bad:(dashboardSummary?.thp_v ?? kpi.thp)<228, color:"#059669"},
+  {label:"TAT", val:`${(dashboardSummary?.tat_v ?? kpi.tat).toFixed(2)}h`, bad:(dashboardSummary?.tat_v ?? kpi.tat)>3.5, color:"#d97706"},
+  {label:"WIP", val:String(dashboardSummary?.wip_v ?? kpi.wip), bad:false, color:"#7c3aed"},
+].map(({label,val,bad,color})=>(
+  <div key={label} style={{
+    padding:"5px 12px", borderRadius:8,
+    background: bad?"#fee2e2":"#f8fafc",
+    border:`1px solid ${bad?"#fecaca":"#e2e8f0"}`,
+    display:"flex", alignItems:"center", gap:6,
+  }}>
         <span style={{fontSize:10,fontWeight:700,color:"#9ca3af"}}>{label}</span>
         <span style={{fontSize:13,fontWeight:700,fontFamily:"monospace",color:bad?"#dc2626":color}}>{val}</span>
         {bad && <span style={{width:6,height:6,borderRadius:"50%",background:"#dc2626",animation:"pulse 1s infinite"}}/>}
@@ -1136,7 +1207,7 @@ useEffect(()=>{
                       </tr>
                     </thead>
                     <tbody>
-                      {DB_KPI_DAILY.map((row,i)=>(
+                      {(dbKpiData.length > 0 ? dbKpiData : DB_KPI_DAILY).map((row,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:row.alarm_flag===1?"#fefce8":"#fff"}}>
                           <td style={{padding:"8px 12px",color:"#374151",whiteSpace:"nowrap" as const}}>{row.date}</td>
                           <td style={{padding:"8px 12px",fontWeight:700}}>{row.eqp_id}</td>
@@ -1172,7 +1243,7 @@ useEffect(()=>{
                     {["date","alarm_eqp_id","alarm_kpi"].map(h=><th key={h} style={{padding:"10px 16px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",letterSpacing:0.5}}>{h}</th>)}
                   </tr></thead>
                   <tbody>
-                    {DB_SCENARIO_MAP.map((row,i)=>{
+                    {(dbScenarioData.length > 0 ? dbScenarioData : DB_SCENARIO_MAP).map((row,i)=>{
                       const meta=KPI_META[row.alarm_kpi];
                       return(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
@@ -1199,7 +1270,7 @@ useEffect(()=>{
                     {["rcp_id","eqp_id","complex_level"].map(h=><th key={h} style={{padding:"10px 16px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",letterSpacing:0.5}}>{h}</th>)}
                   </tr></thead>
                   <tbody>
-                    {DB_RCP_STATE.map((row,i)=>(
+                    {(dbRcpData.length > 0 ? dbRcpData : DB_RCP_STATE).map((row,i)=>(
                       <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                         <td style={{padding:"10px 16px",fontFamily:"monospace",color:"#374151"}}>{row.rcp_id}</td>
                         <td style={{padding:"10px 16px",fontWeight:700,fontFamily:"monospace"}}>{row.eqp_id}</td>
@@ -1230,7 +1301,7 @@ useEffect(()=>{
                       {["event_time","end_time","eqp_id","line","oper","lot_id","rcp_id","state"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",whiteSpace:"nowrap" as const}}>{h}</th>)}
                     </tr></thead>
                     <tbody>
-                      {DB_EQP_STATE.map((row,i)=>(
+                      {(dbEqpData.length > 0 ? dbEqpData : DB_EQP_STATE).map((row,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:row.eqp_state==="DOWN"?"#fef2f2":i%2===0?"#fff":"#fafafa"}}>
                           <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.event_time.slice(11)}</td>
                           <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#6b7280"}}>{row.end_time.slice(11)}</td>
@@ -1261,7 +1332,7 @@ useEffect(()=>{
                       {["event_time","lot_id","line","oper","eqp_id","rcp_id","lot_state","in_cnt","hold","scrap"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",whiteSpace:"nowrap" as const}}>{h}</th>)}
                     </tr></thead>
                     <tbody>
-                      {DB_LOT_STATE.map((row,i)=>(
+                      {(dbLotData.length > 0 ? dbLotData : DB_LOT_STATE).map((row,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:row.lot_state==="HOLD"?"#fef2f2":i%2===0?"#fff":"#fafafa"}}>
                           <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.event_time.slice(11)}</td>
                           <td style={{padding:"8px 12px",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.lot_id}</td>
