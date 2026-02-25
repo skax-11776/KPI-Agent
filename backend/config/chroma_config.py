@@ -77,7 +77,27 @@ class ChromaDBConfig:
         except Exception as e:
             print(f"❌ 리포트 저장 실패: {str(e)}")
             return False
-    
+    def add_report(self, report_id: str, report_text: str, metadata: dict) -> bool:
+        try:
+            existing = self.collection.get(ids=[report_id])
+            if existing['ids']:
+                print(f"⚠️ 이미 존재: {report_id} (건너뜀)")
+                return True
+            from .aws_config import aws_config
+            embedding = aws_config.get_embeddings(report_text)
+            self.collection.add(
+                documents=[report_text],
+                embeddings=[embedding],
+                metadatas=[metadata],
+                ids=[report_id]
+            )
+            print(f"✅ 저장 완료: {report_id}")
+            return True
+        except Exception as e:
+            print(f"❌ 저장 실패: {str(e)}")
+            return False
+            
+           
     def search_similar_reports(self, query_text: str, n_results: int = 5, filter_metadata: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """유사한 과거 리포트를 검색합니다."""
         try:
@@ -134,7 +154,58 @@ class ChromaDBConfig:
     def count_reports(self) -> int:
         """저장된 리포트 개수를 반환합니다."""
         return self.collection.count()
-    
+    def get_report_by_date(self, date_str: str) -> Dict[str, Any]:
+        """
+        특정 날짜의 리포트를 메타데이터로 직접 검색합니다.
+        예: date_str = "2026-01-23"
+        """
+        try:
+            # 메타데이터 필터로 날짜 검색
+            result = self.collection.get(
+                where={"date": {"$eq": date_str}}
+            )
+
+            if result['ids'] and len(result['ids']) > 0:
+                print(f"   ✅ 날짜 {date_str} 리포트 발견: {result['ids'][0]}")
+                return {
+                    'id': result['ids'][0],
+                    'document': result['documents'][0],
+                    'metadata': result['metadatas'][0],
+                    'distance': 0.0  # 정확 매칭
+                }
+            else:
+                print(f"   ❌ {date_str} 날짜 리포트 없음")
+                return None
+
+        except Exception as e:
+            print(f"❌ 날짜 검색 실패: {str(e)}")
+            return None
+    def get_all_reports(self) -> list:
+        """
+        ChromaDB에 저장된 모든 리포트를 가져옵니다.
+        "전체 알람 분석해줘" 같은 질문에 사용합니다.
+        """
+        try:
+            total = self.collection.count()
+            if total == 0:
+                return []
+            
+            result = self.collection.get()
+            formatted = []
+            for i in range(len(result['ids'])):
+                formatted.append({
+                    'id': result['ids'][i],
+                    'document': result['documents'][i],
+                    'metadata': result['metadatas'][i],
+                    'distance': 0.0
+                })
+            
+            print(f"   ✅ 전체 {len(formatted)}개 리포트 로드")
+            return formatted
+        except Exception as e:
+            print(f"❌ 전체 조회 실패: {str(e)}")
+            return []
+        
     def delete_report(self, report_id: str) -> bool:
         """특정 리포트를 삭제합니다."""
         try:
