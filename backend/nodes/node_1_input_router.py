@@ -6,7 +6,6 @@ Node 1: Input Router
 1. alarm: 최신 알람 분석 (프론트가 알람창 클릭)
 2. question: 과거 데이터 질문 (프론트가 챗봇 사용)
 """
-
 import sys
 from pathlib import Path
 
@@ -15,7 +14,6 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from backend.utils.data_utils import get_latest_alarm
-
 
 def node_1_input_router(state: dict) -> dict:
     """
