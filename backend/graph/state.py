@@ -52,7 +52,10 @@ class AgentState(TypedDict, total=False):
     
     rcp_data: Optional[List[Dict[str, Any]]]
     """RCP_STATE 테이블에서 조회한 레시피 정보"""
-    
+
+    trend_data: Optional[List[Dict[str, Any]]]
+    """KPI_DAILY 테이블에서 조회한 직전 7일 추세 데이터"""
+
     context_text: Optional[str]
     """LLM에 제공할 포맷팅된 컨텍스트 텍스트"""
     
@@ -84,9 +87,12 @@ class AgentState(TypedDict, total=False):
     ]
     """
     
+    problem_summary: Optional[str]
+    """LLM이 생성한 문제 요약 (Node 6에서 설정)"""
+
     selected_cause: Optional[Dict[str, Any]]
     """사용자가 선택한 최종 근본 원인"""
-    
+
     selected_cause_index: Optional[int]
     """선택된 원인의 인덱스"""
     
@@ -165,51 +171,51 @@ def print_state_summary(state: AgentState) -> str:
     """
     summary = []
     summary.append("=" * 60)
-    summary.append("📊 현재 State 요약")
+    summary.append("현재 State 요약")
     summary.append("=" * 60)
     
     # 입력 정보
-    summary.append(f"\n🔹 입력 타입: {state.get('input_type', 'N/A')}")
+    summary.append(f"\n입력 타입: {state.get('input_type', 'N/A')}")
     if state.get('input_data'):
-        summary.append(f"🔹 입력 데이터: {state.get('input_data', 'N/A')[:50]}...")
+        summary.append(f"입력 데이터: {state.get('input_data', 'N/A')[:50]}...")
     
     # 알람 정보
     if state.get('alarm_date'):
-        summary.append(f"\n📅 알람 날짜: {state['alarm_date']}")
-        summary.append(f"🔧 장비 ID: {state.get('alarm_eqp_id', 'N/A')}")
-        summary.append(f"📈 KPI: {state.get('alarm_kpi', 'N/A')}")
+        summary.append(f"\n알람 날짜: {state['alarm_date']}")
+        summary.append(f"장비 ID: {state.get('alarm_eqp_id', 'N/A')}")
+        summary.append(f"KPI: {state.get('alarm_kpi', 'N/A')}")
     
     # 질문 정보
     if state.get('question_text'):
-        summary.append(f"\n💬 질문: {state['question_text'][:50]}...")
+        summary.append(f"\n질문: {state['question_text'][:50]}...")
     
     # 데이터 조회 상태
     if state.get('kpi_data'):
-        summary.append(f"\n✅ KPI 데이터: 조회 완료")
+        summary.append(f"\nKPI 데이터: 조회 완료")
     if state.get('lot_data'):
-        summary.append(f"✅ 로트 데이터: {len(state['lot_data'])}건")
+        summary.append(f"로트 데이터: {len(state['lot_data'])}건")
     if state.get('eqp_data'):
-        summary.append(f"✅ 장비 데이터: {len(state['eqp_data'])}건")
+        summary.append(f"장비 데이터: {len(state['eqp_data'])}건")
     
     # 분석 결과
     if state.get('root_causes'):
-        summary.append(f"\n🔍 근본 원인 후보: {len(state['root_causes'])}개")
+        summary.append(f"\n근본 원인 후보: {len(state['root_causes'])}개")
     if state.get('selected_cause'):
-        summary.append(f"✅ 선택된 원인: {state['selected_cause'].get('cause', 'N/A')[:50]}...")
+        summary.append(f"선택된 원인: {state['selected_cause'].get('cause', 'N/A')[:50]}...")
     
     # 최종 리포트
     if state.get('final_report'):
-        summary.append(f"\n📝 최종 리포트: 생성 완료")
-        summary.append(f"🆔 리포트 ID: {state.get('report_id', 'N/A')}")
-        summary.append(f"💾 RAG 저장: {'✅' if state.get('rag_saved') else '❌'}")
+        summary.append(f"\n최종 리포트: 생성 완료")
+        summary.append(f"리포트 ID: {state.get('report_id', 'N/A')}")
+        summary.append(f"RAG 저장: {'' if state.get('rag_saved') else '[ERROR] '}")
     
     # 질문 답변
     if state.get('final_answer'):
-        summary.append(f"\n💬 답변: 생성 완료 ({len(state['final_answer'])}자)")
+        summary.append(f"\n답변: 생성 완료 ({len(state['final_answer'])}자)")
     
     # 에러
     if state.get('error'):
-        summary.append(f"\n❌ 에러: {state['error']}")
+        summary.append(f"\n[ERROR] 에러: {state['error']}")
     
     summary.append("\n" + "=" * 60)
     

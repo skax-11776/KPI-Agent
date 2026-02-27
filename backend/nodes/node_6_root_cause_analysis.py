@@ -46,7 +46,7 @@ def node_6_root_cause_analysis(state: dict) -> dict:
     """
     
     print("\n" + "=" * 60)
-    print("🤖 [Node 6] Root Cause Analysis 실행")
+    print("[Node 6] Root Cause Analysis 실행")
     print("=" * 60)
     
     # 1. State에서 필요한 정보 가져오기
@@ -55,19 +55,19 @@ def node_6_root_cause_analysis(state: dict) -> dict:
     
     if not context_text:
         error_msg = "컨텍스트 데이터가 없습니다"
-        print(f"❌ {error_msg}")
+        print(f"[ERROR] {error_msg}")
         return {'error': error_msg}
     
-    print(f"📊 KPI: {alarm_kpi}")
-    print(f"📝 컨텍스트 크기: {len(context_text)}자")
+    print(f"KPI: {alarm_kpi}")
+    print(f"컨텍스트 크기: {len(context_text)}자")
     
     # 2. 프롬프트 생성
-    print(f"\n📋 프롬프트 생성 중...")
-    prompt = get_root_cause_analysis_prompt(context_text)
-    print(f"   ✅ 프롬프트 생성 완료 ({len(prompt)}자)")
+    print(f"\n프롬프트 생성 중...")
+    prompt = get_root_cause_analysis_prompt(context_text, alarm_kpi=alarm_kpi)
+    print(f"   프롬프트 생성 완료 ({len(prompt)}자)")
     
     # 3. LLM 호출
-    print(f"\n🤖 Claude 호출 중... (이 작업은 몇 초 걸릴 수 있습니다)")
+    print(f"\nClaude 호출 중... (이 작업은 몇 초 걸릴 수 있습니다)")
     
     try:
         # metadata 업데이트 (LLM 호출 횟수)
@@ -78,15 +78,15 @@ def node_6_root_cause_analysis(state: dict) -> dict:
         # Claude 호출
         response_text = aws_config.invoke_claude(prompt)
         
-        print(f"   ✅ Claude 응답 받음 ({len(response_text)}자)")
+        print(f"   Claude 응답 받음 ({len(response_text)}자)")
         
     except Exception as e:
         error_msg = f"LLM 호출 실패: {str(e)}"
-        print(f"   ❌ {error_msg}")
+        print(f"   [ERROR] {error_msg}")
         return {'error': error_msg}
     
     # 4. 응답 파싱 (JSON 추출)
-    print(f"\n🔍 응답 파싱 중...")
+    print(f"\n응답 파싱 중...")
     
     try:
         # JSON 블록 추출 (```json ... ``` 또는 {...})
@@ -106,16 +106,16 @@ def node_6_root_cause_analysis(state: dict) -> dict:
             if 'cause' not in cause or 'probability' not in cause or 'evidence' not in cause:
                 raise ValueError("원인 데이터 형식 오류")
         
-        print(f"   ✅ {len(root_causes)}개 근본 원인 후보 추출")
+        print(f"   {len(root_causes)}개 근본 원인 후보 추출")
         
     except Exception as e:
         error_msg = f"응답 파싱 실패: {str(e)}"
-        print(f"   ❌ {error_msg}")
+        print(f"   [ERROR] {error_msg}")
         print(f"\n원본 응답:\n{response_text[:500]}...")
         return {'error': error_msg}
     
     # 5. 결과 출력
-    print(f"\n📊 근본 원인 분석 결과:")
+    print(f"\n근본 원인 분석 결과:")
     print(f"\n문제 요약: {result.get('problem_summary', 'N/A')}")
     print(f"\n근본 원인 후보:")
     
@@ -129,6 +129,7 @@ def node_6_root_cause_analysis(state: dict) -> dict:
     # 6. State 업데이트
     return {
         'root_causes': root_causes,
+        'problem_summary': result.get('problem_summary', ''),
         'metadata': metadata
     }
 

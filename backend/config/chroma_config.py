@@ -35,13 +35,13 @@ class ChromaDBConfig:
         # 컬렉션 생성 또는 가져오기
         self.collection = self._get_or_create_collection()
         
-        print(f"✅ ChromaDB 초기화 완료: {self.db_path}")
+        print(f"ChromaDB 초기화 완료: {self.db_path}")
     
     def _get_or_create_collection(self):
         """컬렉션을 가져오거나 없으면 생성합니다."""
         try:
             collection = self.client.get_collection(name=self.collection_name)
-            print(f"📂 기존 컬렉션 로드: {self.collection_name}")
+            print(f"기존 컬렉션 로드: {self.collection_name}")
         except Exception:
             collection = self.client.create_collection(
                 name=self.collection_name,
@@ -50,38 +50,15 @@ class ChromaDBConfig:
                     "created_at": datetime.now().isoformat()
                 }
             )
-            print(f"✨ 새 컬렉션 생성: {self.collection_name}")
+            print(f"새 컬렉션 생성: {self.collection_name}")
         
         return collection
     
-    def add_report(self, report_id: str, report_text: str, metadata: Dict[str, Any]) -> bool:
-        """분석 리포트를 ChromaDB에 저장합니다."""
-        try:
-            # AWS Bedrock으로 임베딩 생성
-            from .aws_config import aws_config
-            
-            print(f"🔄 임베딩 생성 중: {report_id}")
-            embedding = aws_config.get_embeddings(report_text)
-            
-            # ChromaDB에 저장
-            self.collection.add(
-                documents=[report_text],
-                embeddings=[embedding],
-                metadatas=[metadata],
-                ids=[report_id]
-            )
-            
-            print(f"✅ 리포트 저장 완료: {report_id}")
-            return True
-            
-        except Exception as e:
-            print(f"❌ 리포트 저장 실패: {str(e)}")
-            return False
     def add_report(self, report_id: str, report_text: str, metadata: dict) -> bool:
         try:
             existing = self.collection.get(ids=[report_id])
             if existing['ids']:
-                print(f"⚠️ 이미 존재: {report_id} (건너뜀)")
+                print(f"[WARN] 이미 존재: {report_id} (건너뜀)")
                 return True
             from .aws_config import aws_config
             embedding = aws_config.get_embeddings(report_text)
@@ -91,10 +68,10 @@ class ChromaDBConfig:
                 metadatas=[metadata],
                 ids=[report_id]
             )
-            print(f"✅ 저장 완료: {report_id}")
+            print(f"저장 완료: {report_id}")
             return True
         except Exception as e:
-            print(f"❌ 저장 실패: {str(e)}")
+            print(f"[ERROR] 저장 실패: {str(e)}")
             return False
             
            
@@ -103,7 +80,7 @@ class ChromaDBConfig:
         try:
             from .aws_config import aws_config
             
-            print(f"🔍 유사 리포트 검색 중...")
+            print(f"유사 리포트 검색 중...")
             query_embedding = aws_config.get_embeddings(query_text)
             
             results = self.collection.query(
@@ -123,14 +100,14 @@ class ChromaDBConfig:
                         'distance': results['distances'][0][i] if 'distances' in results else None
                     })
                 
-                print(f"✅ {len(formatted_results)}개의 유사 리포트 발견")
+                print(f"{len(formatted_results)}개의 유사 리포트 발견")
             else:
-                print(f"⚠️ 유사 리포트를 찾지 못했습니다")
+                print(f"[WARN] 유사 리포트를 찾지 못했습니다")
             
             return formatted_results
             
         except Exception as e:
-            print(f"❌ 검색 실패: {str(e)}")
+            print(f"[ERROR] 검색 실패: {str(e)}")
             return []
     
     def get_report_by_id(self, report_id: str) -> Dict[str, Any]:
@@ -148,7 +125,7 @@ class ChromaDBConfig:
                 return None
                 
         except Exception as e:
-            print(f"❌ 조회 실패: {str(e)}")
+            print(f"[ERROR] 조회 실패: {str(e)}")
             return None
     
     def count_reports(self) -> int:
@@ -166,7 +143,7 @@ class ChromaDBConfig:
             )
 
             if result['ids'] and len(result['ids']) > 0:
-                print(f"   ✅ 날짜 {date_str} 리포트 발견: {result['ids'][0]}")
+                print(f"   날짜 {date_str} 리포트 발견: {result['ids'][0]}")
                 return {
                     'id': result['ids'][0],
                     'document': result['documents'][0],
@@ -174,11 +151,11 @@ class ChromaDBConfig:
                     'distance': 0.0  # 정확 매칭
                 }
             else:
-                print(f"   ❌ {date_str} 날짜 리포트 없음")
+                print(f"   [ERROR] {date_str} 날짜 리포트 없음")
                 return None
 
         except Exception as e:
-            print(f"❌ 날짜 검색 실패: {str(e)}")
+            print(f"[ERROR] 날짜 검색 실패: {str(e)}")
             return None
     def get_all_reports(self) -> list:
         """
@@ -200,20 +177,20 @@ class ChromaDBConfig:
                     'distance': 0.0
                 })
             
-            print(f"   ✅ 전체 {len(formatted)}개 리포트 로드")
+            print(f"   전체 {len(formatted)}개 리포트 로드")
             return formatted
         except Exception as e:
-            print(f"❌ 전체 조회 실패: {str(e)}")
+            print(f"[ERROR] 전체 조회 실패: {str(e)}")
             return []
         
     def delete_report(self, report_id: str) -> bool:
         """특정 리포트를 삭제합니다."""
         try:
             self.collection.delete(ids=[report_id])
-            print(f"🗑️ 리포트 삭제 완료: {report_id}")
+            print(f"리포트 삭제 완료: {report_id}")
             return True
         except Exception as e:
-            print(f"❌ 삭제 실패: {str(e)}")
+            print(f"[ERROR] 삭제 실패: {str(e)}")
             return False
     
     def reset_collection(self) -> bool:
@@ -221,10 +198,10 @@ class ChromaDBConfig:
         try:
             self.client.delete_collection(name=self.collection_name)
             self.collection = self._get_or_create_collection()
-            print(f"🔄 컬렉션 초기화 완료")
+            print(f"컬렉션 초기화 완료")
             return True
         except Exception as e:
-            print(f"❌ 초기화 실패: {str(e)}")
+            print(f"[ERROR] 초기화 실패: {str(e)}")
             return False
 
 

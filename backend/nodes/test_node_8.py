@@ -21,14 +21,14 @@ def test_report_generation():
     """리포트 생성 테스트"""
     
     print("\n" + "=" * 60)
-    print("🧪 리포트 생성 테스트")
+    print("리포트 생성 테스트")
     print("=" * 60 + "\n")
     
     # 초기 State
     state = {'input_type': 'alarm'}
     
     # Node 1~7 실행
-    print("1️⃣ Node 1~7 실행...")
+    print("1. Node 1~7 실행...")
     state.update(node_1_input_router(state))
     state.update(node_2_load_alarm_kpi(state))
     state.update(node_3_context_fetch(state))
@@ -36,7 +36,7 @@ def test_report_generation():
     state.update(node_7_human_choice(state))
     
     # Node 8 실행
-    print("2️⃣ Node 8 실행...")
+    print("2. Node 8 실행...")
     result = node_8_report_writer(state)
     state.update(result)
     
@@ -57,7 +57,7 @@ def test_report_generation():
     assert state['alarm_date'] in report_id, "날짜 정보 없음"
     assert state['alarm_eqp_id'] in report_id, "장비 ID 정보 없음"
     
-    print(f"\n✅ 리포트 생성 성공!")
+    print(f"\n리포트 생성 성공!")
     print(f"   리포트 ID: {report_id}")
     print(f"   리포트 길이: {len(final_report)}자")
     print(f"   줄 수: {len(final_report.split(chr(10)))}줄")
@@ -72,14 +72,14 @@ def test_report_generation():
     
     print(f"   필수 섹션: {len(found_sections)}/{len(required_sections)}개")
     
-    print("\n✅ 리포트 생성 테스트 통과!\n")
+    print("\n리포트 생성 테스트 통과!\n")
 
 
 def test_report_content():
     """리포트 내용 검증 테스트"""
     
     print("=" * 60)
-    print("🧪 리포트 내용 검증 테스트")
+    print("리포트 내용 검증 테스트")
     print("=" * 60 + "\n")
     
     # 과거 알람으로 테스트
@@ -101,7 +101,7 @@ def test_report_content():
     
     final_report = state['final_report']
     
-    print(f"📄 리포트 전체:")
+    print(f"리포트 전체:")
     print("=" * 60)
     print(final_report)
     print("=" * 60)
@@ -122,10 +122,10 @@ def test_report_content():
     # KPI: OEE
     has_kpi_info = 'OEE' in final_report or '효율' in final_report
     
-    print(f"\n✅ 리포트 내용 검증:")
-    print(f"   날짜 정보: {'✅' if has_date_info else '❌'}")
-    print(f"   장비 정보: {'✅' if has_eqp_info else '❌'}")
-    print(f"   KPI 정보: {'✅' if has_kpi_info else '❌'}")
+    print(f"\n리포트 내용 검증:")
+    print(f"   날짜 정보: {'' if has_date_info else '[ERROR] '}")
+    print(f"   장비 정보: {'' if has_eqp_info else '[ERROR] '}")
+    print(f"   KPI 정보: {'' if has_kpi_info else '[ERROR] '}")
     
     # 최소한 하나의 정보는 포함되어야 함
     assert has_date_info or has_eqp_info or has_kpi_info, \
@@ -134,13 +134,13 @@ def test_report_content():
     # 리포트 길이 확인
     assert len(final_report) > 200, "리포트가 너무 짧음"
     
-    print("\n✅ 리포트 내용 검증 테스트 통과!\n")
+    print("\n리포트 내용 검증 테스트 통과!\n")
 
 def test_llm_call_count():
     """LLM 호출 횟수 확인"""
     
     print("=" * 60)
-    print("🧪 LLM 호출 횟수 테스트")
+    print("LLM 호출 횟수 테스트")
     print("=" * 60 + "\n")
     
     # 초기 State
@@ -164,17 +164,17 @@ def test_llm_call_count():
     # 검증: Node 6에서 1회, Node 8에서 1회 = 총 2회
     assert state['metadata']['llm_calls'] == 2, "LLM 호출 횟수 오류"
     
-    print(f"\n✅ 총 LLM 호출 횟수: {state['metadata']['llm_calls']}회")
+    print(f"\n총 LLM 호출 횟수: {state['metadata']['llm_calls']}회")
     print("   - Node 6 (Root Cause Analysis): 1회")
     print("   - Node 8 (Report Writer): 1회")
     
-    print("\n✅ LLM 호출 횟수 테스트 통과!\n")
+    print("\nLLM 호출 횟수 테스트 통과!\n")
 
 
 def main():
     """모든 테스트 실행"""
     
-    print("\n🧪 Node 8: Report Writer 테스트 시작\n")
+    print("\nNode 8: Report Writer 테스트 시작\n")
     
     try:
         test_report_generation()
@@ -182,14 +182,14 @@ def main():
         test_llm_call_count()
         
         print("=" * 60)
-        print("🎊 모든 테스트 통과!")
+        print("모든 테스트 통과!")
         print("=" * 60 + "\n")
         
     except AssertionError as e:
-        print(f"\n❌ 테스트 실패: {e}\n")
+        print(f"\n[ERROR] 테스트 실패: {e}\n")
         raise
     except Exception as e:
-        print(f"\n❌ 예상치 못한 오류: {e}\n")
+        print(f"\n[ERROR] 예상치 못한 오류: {e}\n")
         import traceback
         traceback.print_exc()
         raise

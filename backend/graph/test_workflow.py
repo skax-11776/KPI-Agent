@@ -137,7 +137,7 @@ def run_alarm_analysis(alarm_date: str = None, alarm_eqp_id: str = None, alarm_k
     """
     
     print("\n" + "=" * 60)
-    print("🚀 알람 분석 워크플로우 시작")
+    print("알람 분석 워크플로우 시작")
     print("=" * 60 + "\n")
     
     # 초기 State
@@ -156,7 +156,7 @@ def run_alarm_analysis(alarm_date: str = None, alarm_eqp_id: str = None, alarm_k
     final_state = workflow_app.invoke(initial_state)
     
     print("\n" + "=" * 60)
-    print("✅ 알람 분석 워크플로우 완료")
+    print("알람 분석 워크플로우 완료")
     print("=" * 60 + "\n")
     
     return final_state
@@ -177,7 +177,7 @@ def run_question_answer(question: str) -> AgentState:
     """
     
     print("\n" + "=" * 60)
-    print("🚀 질문 답변 워크플로우 시작")
+    print("질문 답변 워크플로우 시작")
     print("=" * 60 + "\n")
     
     # 초기 State
@@ -191,7 +191,7 @@ def run_question_answer(question: str) -> AgentState:
     final_state = workflow_app.invoke(initial_state)
     
     print("\n" + "=" * 60)
-    print("✅ 질문 답변 워크플로우 완료")
+    print("질문 답변 워크플로우 완료")
     print("=" * 60 + "\n")
     
     return final_state

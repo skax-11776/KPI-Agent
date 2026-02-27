@@ -108,11 +108,64 @@ class QuestionResponse(BaseModel):
 
 class LatestAlarmResponse(BaseModel):
     """최신 알람 응답"""
-    
+
     success: bool = Field(..., description="성공 여부")
     date: str = Field(..., description="알람 날짜")
     eqp_id: str = Field(..., description="장비 ID")
-    kpi: str = Field(..., description="KPI")
+    kpi: Optional[str] = Field(None, description="KPI (Node 2에서 결정)")
+
+
+class AlarmPhase1Response(BaseModel):
+    """알람 분석 Phase 1 응답 (근본 원인 후보 목록)"""
+
+    success: bool = Field(..., description="성공 여부")
+    message: str = Field(..., description="메시지")
+
+    # 세션 ID (Phase 2에서 사용)
+    session_id: str = Field(..., description="Phase 2 선택 요청 시 사용할 세션 ID")
+
+    # 알람 정보
+    alarm_date: str = Field(..., description="알람 날짜")
+    alarm_eqp_id: str = Field(..., description="장비 ID")
+    alarm_kpi: str = Field(..., description="KPI")
+
+    # 근본 원인 후보
+    root_causes: List[RootCause] = Field(..., description="근본 원인 후보 목록")
+
+    # 메타데이터
+    llm_calls: int = Field(..., description="LLM 호출 횟수")
+    processing_time: Optional[float] = Field(None, description="처리 시간 (초)")
+
+
+class AlarmSelectRequest(BaseModel):
+    """근본 원인 선택 요청 (Phase 2)"""
+
+    session_id: str = Field(..., description="Phase 1에서 받은 세션 ID")
+    selected_index: int = Field(
+        ..., description="선택한 원인 인덱스 (0부터 시작)", ge=0
+    )
+
+
+class AlarmPhase2Response(BaseModel):
+    """알람 분석 Phase 2 응답 (최종 리포트)"""
+
+    success: bool = Field(..., description="성공 여부")
+    message: str = Field(..., description="메시지")
+
+    # 알람 정보
+    alarm_date: str = Field(..., description="알람 날짜")
+    alarm_eqp_id: str = Field(..., description="장비 ID")
+    alarm_kpi: str = Field(..., description="KPI")
+
+    # 선택된 원인 & 리포트
+    selected_cause: RootCause = Field(..., description="선택된 근본 원인")
+    final_report: str = Field(..., description="최종 분석 리포트 (마크다운)")
+    report_id: str = Field(..., description="리포트 ID")
+    rag_saved: bool = Field(..., description="RAG 저장 여부")
+
+    # 메타데이터
+    llm_calls: int = Field(..., description="LLM 호출 횟수")
+    processing_time: Optional[float] = Field(None, description="처리 시간 (초)")
 
 
 class ErrorResponse(BaseModel):

@@ -20,21 +20,21 @@ def test_auto_selection():
     """자동 선택 테스트 (가장 높은 확률)"""
     
     print("\n" + "=" * 60)
-    print("🧪 자동 선택 테스트")
+    print("자동 선택 테스트")
     print("=" * 60 + "\n")
     
     # 초기 State
     state = {'input_type': 'alarm'}
     
     # Node 1~6 실행
-    print("1️⃣ Node 1~6 실행...")
+    print("1. Node 1~6 실행...")
     state.update(node_1_input_router(state))
     state.update(node_2_load_alarm_kpi(state))
     state.update(node_3_context_fetch(state))
     state.update(node_6_root_cause_analysis(state))
     
     # Node 7 실행 (자동 선택)
-    print("2️⃣ Node 7 실행 (자동 선택)...")
+    print("2. Node 7 실행 (자동 선택)...")
     result = node_7_human_choice(state)
     state.update(result)
     
@@ -50,18 +50,18 @@ def test_auto_selection():
     max_prob = max(c['probability'] for c in root_causes)
     assert selected_cause['probability'] == max_prob, "가장 높은 확률이 아님"
     
-    print(f"\n✅ 자동 선택 성공!")
+    print(f"\n자동 선택 성공!")
     print(f"   선택된 원인: {selected_cause['cause']}")
     print(f"   확률: {selected_cause['probability']}%")
     
-    print("\n✅ 자동 선택 테스트 통과!\n")
+    print("\n자동 선택 테스트 통과!\n")
 
 
 def test_manual_selection():
     """수동 선택 테스트"""
     
     print("=" * 60)
-    print("🧪 수동 선택 테스트")
+    print("수동 선택 테스트")
     print("=" * 60 + "\n")
     
     # 샘플 원인 후보
@@ -101,18 +101,18 @@ def test_manual_selection():
     assert selected_cause['cause'] == '고복잡도 레시피 사용', "선택된 원인 불일치"
     assert selected_cause['probability'] == 35, "확률 불일치"
     
-    print(f"\n✅ 수동 선택 성공!")
+    print(f"\n수동 선택 성공!")
     print(f"   선택된 원인: {selected_cause['cause']}")
     print(f"   확률: {selected_cause['probability']}%")
     
-    print("\n✅ 수동 선택 테스트 통과!\n")
+    print("\n수동 선택 테스트 통과!\n")
 
 
 def test_invalid_selection():
     """잘못된 선택 테스트"""
     
     print("=" * 60)
-    print("🧪 잘못된 선택 테스트")
+    print("잘못된 선택 테스트")
     print("=" * 60 + "\n")
     
     # 샘플 원인 후보 (3개)
@@ -134,16 +134,16 @@ def test_invalid_selection():
     # 검증: 에러 발생해야 함
     assert 'error' in result, "에러가 발생해야 함"
     
-    print(f"\n✅ 예상대로 에러 발생: {result['error']}")
+    print(f"\n예상대로 에러 발생: {result['error']}")
     
-    print("\n✅ 잘못된 선택 테스트 통과!\n")
+    print("\n잘못된 선택 테스트 통과!\n")
 
 
 def test_no_causes():
     """원인 후보 없는 경우 테스트"""
     
     print("=" * 60)
-    print("🧪 원인 후보 없는 경우 테스트")
+    print("원인 후보 없는 경우 테스트")
     print("=" * 60 + "\n")
     
     # 원인 후보 없는 State
@@ -155,15 +155,15 @@ def test_no_causes():
     # 검증: 에러 발생해야 함
     assert 'error' in result, "에러가 발생해야 함"
     
-    print(f"\n✅ 예상대로 에러 발생: {result['error']}")
+    print(f"\n예상대로 에러 발생: {result['error']}")
     
-    print("\n✅ 원인 후보 없는 경우 테스트 통과!\n")
+    print("\n원인 후보 없는 경우 테스트 통과!\n")
 
 
 def main():
     """모든 테스트 실행"""
     
-    print("\n🧪 Node 7: Human Choice 테스트 시작\n")
+    print("\nNode 7: Human Choice 테스트 시작\n")
     
     try:
         test_auto_selection()
@@ -172,14 +172,14 @@ def main():
         test_no_causes()
         
         print("=" * 60)
-        print("🎊 모든 테스트 통과!")
+        print("모든 테스트 통과!")
         print("=" * 60 + "\n")
         
     except AssertionError as e:
-        print(f"\n❌ 테스트 실패: {e}\n")
+        print(f"\n[ERROR] 테스트 실패: {e}\n")
         raise
     except Exception as e:
-        print(f"\n❌ 예상치 못한 오류: {e}\n")
+        print(f"\n[ERROR] 예상치 못한 오류: {e}\n")
         import traceback
         traceback.print_exc()
         raise

@@ -2,38 +2,79 @@
 LLM 프롬프트 템플릿
 """
 
-def get_root_cause_analysis_prompt(context_data: str) -> str:
+def get_root_cause_analysis_prompt(context_data: str, alarm_kpi: str = None) -> str:
     """
     근본 원인 분석을 위한 프롬프트를 생성합니다.
-    
+
     Args:
         context_data: 분석할 컨텍스트 데이터
-    
+        alarm_kpi: 이상이 발생한 KPI (OEE, THP, TAT, WIP)
+
     Returns:
         str: 프롬프트 문자열
     """
-    return f"""당신은 제조 라인 KPI 분석 전문가입니다. 
+    # KPI별 분석 관점 정의
+    kpi_perspective = {
+        'OEE': (
+            "OEE (설비 종합 효율) 이상입니다.\n"
+            "다음 세 가지 관점에서 원인을 분석하세요:\n"
+            "- 가용성 (Availability): 계획외 다운타임, 설비 고장, PM 지연\n"
+            "- 성능 (Performance): 처리 속도 저하, 소량 정지, 공회전\n"
+            "- 품질 (Quality): 불량 발생, 재작업, 초기 수율 손실"
+        ),
+        'THP': (
+            "THP (처리량/Throughput) 이상입니다.\n"
+            "다음 관점에서 원인을 분석하세요:\n"
+            "- 병목 장비 발생 (특정 설비의 처리 속도 저하)\n"
+            "- 투입 부족 (LOT 공급 지연, 재료 부족)\n"
+            "- 다운타임으로 인한 가동 시간 손실"
+        ),
+        'TAT': (
+            "TAT (처리 소요시간/Turn Around Time) 이상입니다.\n"
+            "다음 관점에서 원인을 분석하세요:\n"
+            "- 대기 시간 증가 (어느 공정 단계에서 병목이 발생했는지)\n"
+            "- 설비 간 이동/이송 지연\n"
+            "- 재작업 또는 재검사로 인한 추가 소요 시간"
+        ),
+        'WIP': (
+            "WIP (재공품/Work In Process) 이상입니다.\n"
+            "다음 관점에서 원인을 분석하세요:\n"
+            "- 업스트림 공급 과잉 (이전 공정에서 과도하게 투입)\n"
+            "- 다운스트림 소화 부족 (다음 공정에서 처리 지연)\n"
+            "- HOLD 발생으로 인한 재공품 적체"
+        ),
+    }
+
+    perspective_text = kpi_perspective.get(
+        alarm_kpi,
+        "KPI 이상이 발생했습니다. 설비, 공정, 재료 관점에서 원인을 분석하세요."
+    )
+
+    return f"""당신은 제조 라인 KPI 분석 전문가입니다.
 아래 데이터를 분석하여 문제의 근본 원인을 찾아주세요.
 
+## 분석 대상 KPI
+{perspective_text}
+
+## 현장 데이터
 {context_data}
 
-**분석 요구사항:**
-1. 문제점을 명확히 정의하세요
-2. 가능한 근본 원인을 3~5개 제시하세요
-3. 각 원인의 가능성을 퍼센트(%)로 표시하세요
-4. 각 원인에 대한 증거/근거를 제시하세요
+## 분석 요구사항
+1. 위 KPI 관점을 기준으로 문제점을 명확히 정의하세요.
+2. 가능한 근본 원인을 3~5개 제시하세요.
+3. 각 원인의 가능성을 퍼센트(%)로 표시하고, 합계가 100%가 되도록 하세요.
+4. 각 원인에 대한 구체적인 데이터 근거를 제시하세요.
 
-**출력 형식:**
-JSON 형식으로 다음과 같이 출력하세요:
+## 출력 형식
+JSON 형식으로만 출력하세요 (설명 텍스트 없이):
 {{
-    "problem_summary": "문제 요약",
+    "problem_summary": "문제 요약 (2~3문장)",
     "root_causes": [
         {{
-            "cause": "원인 1",
+            "cause": "원인 설명",
             "probability": 40,
-            "evidence": "근거 설명"
-        }},
-        ...
+            "evidence": "데이터 기반 근거"
+        }}
     ]
 }}
 """
@@ -95,7 +136,7 @@ def get_question_answer_prompt(question: str, similar_reports: list) -> str:
     reports_text = ""
     for i, report in enumerate(similar_reports, 1):
         meta = report['metadata']
-        reports_text += f"\n### 📄 참고 보고서 {i}"
+        reports_text += f"\n### 참고 보고서 {i}"
         reports_text += f" | {meta.get('date','?')} | {meta.get('eqp_id','?')} | KPI: {meta.get('kpi','?')}\n"
         reports_text += f"{report['document'][:800]}\n"
         reports_text += "---\n"
@@ -114,7 +155,7 @@ def get_question_answer_prompt(question: str, similar_reports: list) -> str:
 
 ## 답변 지침
 1. 질문에 직접적으로 답변하세요
-2. 과거 보고서를 참고했다면 "📄 [날짜] [장비] 보고서 참고" 형식으로 출처를 명시하세요
+2. 과거 보고서를 참고했다면 "[날짜] [장비] 보고서 참고" 형식으로 출처를 명시하세요
 3. 보고서에 없는 내용은 전문가 지식으로 자유롭게 보완하세요
 4. 날씨, 주식 등 제조와 무관한 질문은 "저는 KPI 분석 전문가라 해당 질문은 답변이 어렵습니다" 라고만 짧게 답하세요. 절대 보고서 내용을 억지로 연결하지 마세요.
 5. 참고 보고서가 질문한 날짜와 정확히 일치한다면 그 내용을 상세히 설명하세요.   ← 이 줄 추가

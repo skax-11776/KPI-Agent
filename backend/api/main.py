@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from typing import List
 from dotenv import load_dotenv
 from backend.graph.workflow import run_alarm_analysis, run_question_answer
-from backend.api.routes import alarm, question, system, reports, supabase
+from backend.api.routes import alarm, question, system, reports, supabase, rds
 
 import sys
 
@@ -47,6 +47,7 @@ app.include_router(question.router, prefix="/api")
 app.include_router(system.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")  
 app.include_router(supabase.router, prefix="/api")
+app.include_router(rds.router, prefix="/api")
 
 # Bedrock 채팅 엔드포인트
 class Message(BaseModel):
@@ -67,7 +68,7 @@ async def chat(req: ChatRequest):
     try:
         # ── 알람 분석 모드 ──────────────────────────
         if req.mode == "alarm":
-            print(f"🔔 알람 분석 모드: {req.alarm_eqp_id} / {req.alarm_kpi}")
+            print(f"알람 분석 모드: {req.alarm_eqp_id} / {req.alarm_kpi}")
             final_state = run_alarm_analysis(
                 alarm_date=req.alarm_date or None,
                 alarm_eqp_id=req.alarm_eqp_id or None,
@@ -97,7 +98,7 @@ async def chat(req: ChatRequest):
                 (m.content for m in reversed(req.messages) if m.role == "user"),
                 ""
             )
-            print(f"💬 질문 모드: {user_message[:50]}")
+            print(f"질문 모드: {user_message[:50]}")
             final_state = run_question_answer(user_message)
 
             if final_state.get("error"):
@@ -109,7 +110,7 @@ async def chat(req: ChatRequest):
             }
 
     except Exception as e:
-        print(f"❌ /api/chat 오류: {e}")
+        print(f"[ERROR] /api/chat 오류: {e}")
         return {"content": f"서버 오류: {str(e)}"}
 
 @app.exception_handler(Exception)

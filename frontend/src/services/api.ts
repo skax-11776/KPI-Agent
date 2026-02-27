@@ -5,6 +5,8 @@
 import axios from 'axios';
 import {
   AlarmAnalyzeResponse,
+  AlarmPhase1Response,
+  AlarmPhase2Response,
   QuestionResponse,
   LatestAlarmResponse,
 } from '../types';
@@ -41,6 +43,42 @@ export const analyzeAlarm = async (
       alarm_date: alarmDate,
       alarm_eqp_id: alarmEqpId,
       alarm_kpi: alarmKpi,
+    }
+  );
+  return response.data;
+};
+
+/**
+ * 알람 분석 Phase 1 (근본 원인 후보 조회)
+ */
+export const analyzeAlarmPhase1 = async (
+  alarmDate?: string,
+  alarmEqpId?: string,
+  alarmKpi?: string
+): Promise<AlarmPhase1Response> => {
+  const response = await apiClient.post<AlarmPhase1Response>(
+    '/alarm/phase1',
+    {
+      alarm_date: alarmDate,
+      alarm_eqp_id: alarmEqpId,
+      alarm_kpi: alarmKpi,
+    }
+  );
+  return response.data;
+};
+
+/**
+ * 알람 분석 Phase 2 (원인 선택 후 리포트 생성)
+ */
+export const analyzeAlarmPhase2 = async (
+  sessionId: string,
+  selectedIndex: number
+): Promise<AlarmPhase2Response> => {
+  const response = await apiClient.post<AlarmPhase2Response>(
+    '/alarm/phase2',
+    {
+      session_id: sessionId,
+      selected_index: selectedIndex,
     }
   );
   return response.data;

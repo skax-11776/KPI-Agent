@@ -16,17 +16,17 @@ def main():
     """ChromaDB 기능 테스트"""
     
     print("\n" + "=" * 60)
-    print("🔍 ChromaDB 테스트 시작")
+    print("ChromaDB 테스트 시작")
     print("=" * 60 + "\n")
     
     # 1. 현재 저장된 리포트 개수 확인
-    print("📊 현재 상태:")
+    print("현재 상태:")
     count = chroma_config.count_reports()
     print(f"   저장된 리포트 개수: {count}개\n")
     
     # 2. 테스트 리포트 추가
     print("=" * 60)
-    print("📝 테스트 리포트 저장")
+    print("테스트 리포트 저장")
     print("=" * 60 + "\n")
     
     test_report = """
@@ -61,27 +61,27 @@ def main():
     )
     
     if success:
-        print(f"✅ 테스트 리포트 저장 성공\n")
+        print(f"테스트 리포트 저장 성공\n")
     else:
-        print(f"❌ 테스트 리포트 저장 실패\n")
+        print(f"[ERROR] 테스트 리포트 저장 실패\n")
         return
     
     # 3. 저장된 리포트 조회
     print("=" * 60)
-    print("🔎 리포트 ID로 조회")
+    print("리포트 ID로 조회")
     print("=" * 60 + "\n")
     
     report = chroma_config.get_report_by_id("test_report_001")
     
     if report:
-        print(f"✅ 리포트 조회 성공:")
+        print(f"리포트 조회 성공:")
         print(f"   ID: {report['id']}")
         print(f"   메타데이터: {report['metadata']}")
         print(f"   내용 미리보기: {report['document'][:100]}...\n")
     
     # 4. 유사 리포트 검색
     print("=" * 60)
-    print("🔍 유사 리포트 검색 테스트")
+    print("유사 리포트 검색 테스트")
     print("=" * 60 + "\n")
     
     query = "EQP01 장비에서 효율이 낮아졌어요. 다운타임이 발생했습니다."
@@ -93,7 +93,7 @@ def main():
     )
     
     if similar_reports:
-        print(f"✅ {len(similar_reports)}개의 유사 리포트 발견:\n")
+        print(f"{len(similar_reports)}개의 유사 리포트 발견:\n")
         for i, report in enumerate(similar_reports, 1):
             print(f"{i}. ID: {report['id']}")
             print(f"   유사도 거리: {report['distance']:.4f}")
@@ -101,11 +101,11 @@ def main():
             print(f"   내용: {report['document'][:80]}...")
             print()
     else:
-        print("⚠️ 유사 리포트를 찾지 못했습니다.\n")
+        print("[WARN] 유사 리포트를 찾지 못했습니다.\n")
     
     # 5. 최종 상태 확인
     print("=" * 60)
-    print("📊 최종 상태")
+    print("최종 상태")
     print("=" * 60 + "\n")
     
     final_count = chroma_config.count_reports()
@@ -113,7 +113,7 @@ def main():
     
     # 6. 테스트 데이터 정리 (선택)
     print("=" * 60)
-    print("🧹 테스트 데이터 정리")
+    print("테스트 데이터 정리")
     print("=" * 60 + "\n")
     
     user_input = input("테스트 리포트를 삭제하시겠습니까? (y/n): ")
@@ -123,7 +123,7 @@ def main():
         print(f"남은 리포트: {chroma_config.count_reports()}개\n")
     
     print("=" * 60)
-    print("🎊 ChromaDB 테스트 완료!")
+    print("ChromaDB 테스트 완료!")
     print("=" * 60 + "\n")
 
 

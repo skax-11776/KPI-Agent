@@ -23,7 +23,7 @@ def test_persist_report():
     """리포트 저장 테스트"""
     
     print("\n" + "=" * 60)
-    print("🧪 리포트 저장 테스트")
+    print("리포트 저장 테스트")
     print("=" * 60 + "\n")
     
     # 초기 리포트 개수
@@ -34,7 +34,7 @@ def test_persist_report():
     state = {'input_type': 'alarm'}
     
     # Node 1~8 실행
-    print("1️⃣ Node 1~8 실행...")
+    print("1. Node 1~8 실행...")
     state.update(node_1_input_router(state))
     state.update(node_2_load_alarm_kpi(state))
     state.update(node_3_context_fetch(state))
@@ -45,7 +45,7 @@ def test_persist_report():
     report_id = state['report_id']
     
     # Node 9 실행
-    print("2️⃣ Node 9 실행...")
+    print("2. Node 9 실행...")
     result = node_9_persist_report(state)
     state.update(result)
     
@@ -61,88 +61,88 @@ def test_persist_report():
     saved_report = chroma_config.get_report_by_id(report_id)
     assert saved_report is not None, "저장된 리포트 조회 실패"
     
-    print(f"\n✅ 리포트 저장 성공!")
+    print(f"\n리포트 저장 성공!")
     print(f"   리포트 ID: {report_id}")
     print(f"   저장 위치: ChromaDB")
     print(f"   메타데이터: {saved_report['metadata']}")
     
-    print("\n✅ 리포트 저장 테스트 통과!\n")
+    print("\n리포트 저장 테스트 통과!\n")
 
 
 def test_full_workflow():
     """전체 워크플로우 테스트 (Node 1~9)"""
     
     print("=" * 60)
-    print("🧪 전체 워크플로우 테스트 (Node 1~9)")
+    print("전체 워크플로우 테스트 (Node 1~9)")
     print("=" * 60 + "\n")
     
     # 초기 State
     state = {'input_type': 'alarm'}
     
-    print("🔄 알람 분석 워크플로우 시작...\n")
+    print("알람 분석 워크플로우 시작...\n")
     
     # Node 1: Input Router
-    print("1️⃣ Node 1: Input Router")
+    print("1. Node 1: Input Router")
     state.update(node_1_input_router(state))
-    print(f"   ✅ 알람 타입: {state['input_type']}")
-    print(f"   ✅ 날짜: {state['alarm_date']}, 장비: {state['alarm_eqp_id']}\n")
+    print(f"   알람 타입: {state['input_type']}")
+    print(f"   날짜: {state['alarm_date']}, 장비: {state['alarm_eqp_id']}\n")
     
     # Node 2: Load Alarm KPI
-    print("2️⃣ Node 2: Load Alarm KPI")
+    print("2. Node 2: Load Alarm KPI")
     state.update(node_2_load_alarm_kpi(state))
-    print(f"   ✅ KPI 데이터 조회 완료\n")
+    print(f"   KPI 데이터 조회 완료\n")
     
     # Node 3: Context Fetch
-    print("3️⃣ Node 3: Context Fetch")
+    print("3. Node 3: Context Fetch")
     state.update(node_3_context_fetch(state))
-    print(f"   ✅ 로트: {len(state['lot_data'])}개")
-    print(f"   ✅ 장비 이벤트: {len(state['eqp_data'])}개")
-    print(f"   ✅ 레시피: {len(state['rcp_data'])}개\n")
+    print(f"   로트: {len(state['lot_data'])}개")
+    print(f"   장비 이벤트: {len(state['eqp_data'])}개")
+    print(f"   레시피: {len(state['rcp_data'])}개\n")
     
     # Node 6: Root Cause Analysis
-    print("4️⃣ Node 6: Root Cause Analysis")
+    print("4. Node 6: Root Cause Analysis")
     state.update(node_6_root_cause_analysis(state))
-    print(f"   ✅ 근본 원인 후보: {len(state['root_causes'])}개\n")
+    print(f"   근본 원인 후보: {len(state['root_causes'])}개\n")
     
     # Node 7: Human Choice
-    print("5️⃣ Node 7: Human Choice")
+    print("5. Node 7: Human Choice")
     state.update(node_7_human_choice(state))
-    print(f"   ✅ 선택된 원인: {state['selected_cause']['cause'][:50]}...\n")
+    print(f"   선택된 원인: {state['selected_cause']['cause'][:50]}...\n")
     
     # Node 8: Report Writer
-    print("6️⃣ Node 8: Report Writer")
+    print("6. Node 8: Report Writer")
     state.update(node_8_report_writer(state))
-    print(f"   ✅ 리포트 생성: {len(state['final_report'])}자")
-    print(f"   ✅ 리포트 ID: {state['report_id']}\n")
+    print(f"   리포트 생성: {len(state['final_report'])}자")
+    print(f"   리포트 ID: {state['report_id']}\n")
     
     # Node 9: Persist Report
-    print("7️⃣ Node 9: Persist Report")
+    print("7. Node 9: Persist Report")
     state.update(node_9_persist_report(state))
-    print(f"   ✅ RAG 저장: {state['rag_saved']}\n")
+    print(f"   RAG 저장: {state['rag_saved']}\n")
     
     # 최종 검증
     assert 'error' not in state, f"워크플로우 중 에러 발생: {state.get('error')}"
     assert state.get('rag_saved') is True, "RAG 저장 실패"
     
     print("=" * 60)
-    print("🎉 전체 워크플로우 성공!")
+    print("전체 워크플로우 성공!")
     print("=" * 60)
     
-    print(f"\n📊 최종 결과:")
+    print(f"\n최종 결과:")
     print(f"   알람: {state['alarm_date']} - {state['alarm_eqp_id']} - {state['alarm_kpi']}")
     print(f"   근본 원인: {state['selected_cause']['cause'][:60]}...")
     print(f"   리포트 ID: {state['report_id']}")
-    print(f"   RAG 저장: ✅")
+    print(f"   RAG 저장: ")
     print(f"   LLM 호출: {state['metadata']['llm_calls']}회")
     
-    print("\n✅ 전체 워크플로우 테스트 통과!\n")
+    print("\n전체 워크플로우 테스트 통과!\n")
 
 
 def test_search_saved_report():
     """저장된 리포트 검색 테스트"""
     
     print("=" * 60)
-    print("🧪 저장된 리포트 검색 테스트")
+    print("저장된 리포트 검색 테스트")
     print("=" * 60 + "\n")
     
     # 검색 쿼리
@@ -156,7 +156,7 @@ def test_search_saved_report():
     )
     
     if results:
-        print(f"✅ {len(results)}개의 유사 리포트 발견:\n")
+        print(f"{len(results)}개의 유사 리포트 발견:\n")
         
         for i, report in enumerate(results, 1):
             print(f"{i}. ID: {report['id']}")
@@ -165,15 +165,15 @@ def test_search_saved_report():
             print(f"   내용: {report['document'][:100]}...")
             print()
     else:
-        print("⚠️ 유사 리포트 없음")
+        print("[WARN] 유사 리포트 없음")
     
-    print("✅ 저장된 리포트 검색 테스트 통과!\n")
+    print("저장된 리포트 검색 테스트 통과!\n")
 
 
 def main():
     """모든 테스트 실행"""
     
-    print("\n🧪 Node 9: Persist Report 테스트 시작\n")
+    print("\nNode 9: Persist Report 테스트 시작\n")
     
     try:
         test_persist_report()
@@ -181,14 +181,14 @@ def main():
         test_search_saved_report()
         
         print("=" * 60)
-        print("🎊 모든 테스트 통과!")
+        print("모든 테스트 통과!")
         print("=" * 60 + "\n")
         
     except AssertionError as e:
-        print(f"\n❌ 테스트 실패: {e}\n")
+        print(f"\n[ERROR] 테스트 실패: {e}\n")
         raise
     except Exception as e:
-        print(f"\n❌ 예상치 못한 오류: {e}\n")
+        print(f"\n[ERROR] 예상치 못한 오류: {e}\n")
         import traceback
         traceback.print_exc()
         raise

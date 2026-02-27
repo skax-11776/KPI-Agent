@@ -45,7 +45,7 @@ class SimpleCache:
             del self.cache[key]
             return None
         
-        print(f"✅ 캐시 히트: {key}")
+        print(f"캐시 히트: {key}")
         return cached_item['data']
     
     def set(self, key: str, data: Dict[str, Any]) -> None:
@@ -64,7 +64,7 @@ class SimpleCache:
             'created_at': datetime.now()
         }
         
-        print(f"💾 캐시 저장: {key} (만료: {expires_at.strftime('%H:%M:%S')})")
+        print(f"캐시 저장: {key} (만료: {expires_at.strftime('%H:%M:%S')})")
     
     def delete(self, key: str) -> None:
         """
@@ -75,13 +75,13 @@ class SimpleCache:
         """
         if key in self.cache:
             del self.cache[key]
-            print(f"🗑️ 캐시 삭제: {key}")
+            print(f"캐시 삭제: {key}")
     
     def clear(self) -> None:
         """모든 캐시 삭제"""
         count = len(self.cache)
         self.cache.clear()
-        print(f"🗑️ 전체 캐시 삭제: {count}개")
+        print(f"전체 캐시 삭제: {count}개")
     
     def get_stats(self) -> Dict[str, Any]:
         """

@@ -126,7 +126,7 @@ const RealtimeKpiMonitor: React.FC = () => {
   // 히스토리 데이터 (최근 120포인트 = 60초)
   const [history, setHistory] = useState<KpiDataPoint[]>([]);
   const [current, setCurrent] = useState<KpiDataPoint>({
-    time: Date.now(), oee: 65.2, thp: 262, tat: 2.77, wip: 243
+    time: Date.now(), oee: 74.5, thp: 248, tat: 2.8, wip: 250
   });
 
   // 차트 컨테이너 너비 (ResizeObserver로 측정)
@@ -159,12 +159,16 @@ const RealtimeKpiMonitor: React.FC = () => {
     const interval = setInterval(() => {
       setCurrent(prev => {
         // 소폭 랜덤 변동 (실제 환경에서는 API 호출로 대체)
+        // OEE : 목표(70%) 위에서만 움직임 → 이상 없음
+        // THP : 목표(250) 근처에서 자주 넘나듦 → THP만 이상 발생
+        // TAT : 목표(3.5h) 아래에서만 움직임 → 이상 없음
+        // WIP : 정상 구간(230~270) 내에서만 움직임 → 이상 없음
         const next: KpiDataPoint = {
           time: Date.now(),
-          oee: Math.max(50, Math.min(85, prev.oee + (Math.random() - 0.5) * 0.8)),
-          thp: Math.max(200, Math.min(280, prev.thp + (Math.random() - 0.5) * 1)),
-          tat: Math.max(1.5, Math.min(4.5, prev.tat + (Math.random() - 0.5) * 0.02)),
-          wip: Math.max(200, Math.min(300, prev.wip + (Math.random() - 0.5) * 1)),
+          oee: Math.max(71, Math.min(82, prev.oee + (Math.random() - 0.5) * 0.6)),
+          thp: Math.max(235, Math.min(265, prev.thp + (Math.random() - 0.5) * 4)),
+          tat: Math.max(1.8, Math.min(3.2, prev.tat + (Math.random() - 0.5) * 0.02)),
+          wip: Math.max(200, Math.min(300, prev.wip + (Math.random() - 0.5) * 3)),
         };
 
         // 히스토리에 추가 (최대 120개 유지)
@@ -205,18 +209,18 @@ const RealtimeKpiMonitor: React.FC = () => {
     {
       label: 'WIP', unit: 'EA', value: current.wip,
       target: 250, delta: current.wip - prev.wip,
-      isAlarm: current.wip > 270 || current.wip < 230,
+      isAlarm: current.wip > 300 || current.wip < 200,
       description: 'Work In Process',
-      targetLabel: '250EA',
+      targetLabel: '200~300EA',
     },
   ];
 
   // ── 차트 데이터 범위 ──
   const CHART_H = 160;
-  const oeeMin = 50, oeeMax = 85;
-  const thpMin = 200, thpMax = 280;
-  const tatMin = 1.5, tatMax = 4.5;
-  const wipMin = 200, wipMax = 300;
+  const oeeMin = 68, oeeMax = 84;
+  const thpMin = 230, thpMax = 270;
+  const tatMin = 1.5, tatMax = 3.5;
+  const wipMin = 190, wipMax = 310;
 
   return (
     <div>

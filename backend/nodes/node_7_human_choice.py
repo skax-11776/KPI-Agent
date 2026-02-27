@@ -40,7 +40,7 @@ def node_7_human_choice(state: dict) -> dict:
     """
     
     print("\n" + "=" * 60)
-    print("👤 [Node 7] Human Choice 실행")
+    print("[Node 7] Human Choice 실행")
     print("=" * 60)
     
     # 1. State에서 원인 후보 가져오기
@@ -48,10 +48,10 @@ def node_7_human_choice(state: dict) -> dict:
     
     if not root_causes:
         error_msg = "근본 원인 후보가 없습니다"
-        print(f"❌ {error_msg}")
+        print(f"[ERROR] {error_msg}")
         return {'error': error_msg}
     
-    print(f"📊 근본 원인 후보: {len(root_causes)}개")
+    print(f"근본 원인 후보: {len(root_causes)}개")
     
     # 2. 원인 목록 표시
     print(f"\n근본 원인 후보:")
@@ -65,19 +65,19 @@ def node_7_human_choice(state: dict) -> dict:
     
     # 3-1. 이미 선택된 경우
     if selected_index is not None:
-        print(f"\n✅ 사용자가 선택: {selected_index + 1}번")
+        print(f"\n사용자가 선택: {selected_index + 1}번")
         
         # 인덱스 검증
         if not 0 <= selected_index < len(root_causes):
             error_msg = f"잘못된 선택 인덱스: {selected_index}"
-            print(f"❌ {error_msg}")
+            print(f"[ERROR] {error_msg}")
             return {'error': error_msg}
         
         selected_cause = root_causes[selected_index]
     
     # 3-2. 선택되지 않은 경우 (자동 선택)
     else:
-        print(f"\n⚙️ 자동 선택 모드: 가장 높은 확률의 원인 선택")
+        print(f"\n자동 선택 모드: 가장 높은 확률의 원인 선택")
         
         # 확률이 가장 높은 원인 선택
         selected_cause = max(root_causes, key=lambda x: x['probability'])
@@ -86,7 +86,7 @@ def node_7_human_choice(state: dict) -> dict:
         print(f"   → {selected_index + 1}번 선택됨")
     
     # 4. 선택된 원인 출력
-    print(f"\n✨ 선택된 근본 원인:")
+    print(f"\n선택된 근본 원인:")
     print(f"   원인: {selected_cause['cause']}")
     print(f"   확률: {selected_cause['probability']}%")
     print(f"   근거: {selected_cause['evidence'][:100]}...")

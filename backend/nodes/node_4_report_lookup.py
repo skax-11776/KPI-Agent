@@ -10,64 +10,68 @@ from backend.config.chroma_config import chroma_config
 def node_4_report_lookup(state: dict) -> dict:
     
     print("\n" + "=" * 60)
-    print("🔍 [Node 4] Report Lookup 실행")
+    print("[Node 4] Report Lookup 실행")
     print("=" * 60)
 
     question = state.get('input_data', '')
     if not question:
         return {'report_exists': False, 'question_text': ''}
 
-    print(f"💬 사용자 질문: {question}\n")
+    print(f"사용자 질문: {question}\n")
 
     # ── 1. 날짜 추출 시도 ──────────────────────────────
     date_str = _extract_date(question)
     
     if date_str:
-        print(f"📅 날짜 감지: {date_str} → 메타데이터 직접 검색")
+        print(f"날짜 감지: {date_str} → 메타데이터 직접 검색")
         result = chroma_config.get_report_by_date(date_str)
         if result:
-            print(f"   ✅ 날짜 매칭 리포트 발견: {result['id']}")
+            print(f"   날짜 매칭 리포트 발견: {result['id']}")
             return {
                 'report_exists': True,
                 'question_text': question,
                 'similar_reports': [result]
             }
         else:
-            print(f"   ❌ {date_str} 날짜의 리포트 없음")
+            print(f"   [ERROR] {date_str} 날짜의 리포트 없음")
 
     # ── 2. 의미론적 유사도 검색 ────────────────────────
-    print("🔍 ChromaDB에서 관련 리포트 검색 중...")
+    print("ChromaDB에서 관련 리포트 검색 중...")
     try:
         results = chroma_config.search_similar_reports(
             query_text=question,
-            n_results=1
+            n_results=3
         )
 
+        similar_reports = []
         if results and len(results) > 0:
-            distance = results[0]['distance']
-            print(f"   📊 유사도 거리: {distance:.4f}")
-            print(f"   📄 리포트 ID: {results[0]['id']}")
+            for r in results:
+                distance = r['distance']
+                print(f"   리포트 ID: {r['id']} | 유사도 거리: {distance:.4f}")
+                if distance < 1.0:
+                    similar_reports.append(r)
 
-            # 임계값을 2.0으로 완화
-            if distance < 2.0:
+            if similar_reports:
                 report_exists = True
-                print(f"   ✅ 관련성 있음")
+                print(f"   관련성 있음 ({len(similar_reports)}개)")
             else:
                 report_exists = False
-                print(f"   ⚠️ 관련성 낮음")
+                print(f"   [WARN] 관련성 낮음 (임계값 1.0 초과)")
         else:
             report_exists = False
 
     except Exception as e:
-        print(f"   ❌ 검색 실패: {e}")
+        print(f"   [ERROR] 검색 실패: {e}")
         report_exists = False
+        similar_reports = []
 
     print(f"\n결과: {'과거 리포트 있음' if report_exists else '과거 리포트 없음'}")
     print("=" * 60 + "\n")
 
     return {
         'report_exists': report_exists,
-        'question_text': question
+        'question_text': question,
+        'similar_reports': similar_reports
     }
 
 

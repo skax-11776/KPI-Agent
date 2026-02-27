@@ -53,6 +53,32 @@ export interface LatestAlarmResponse {
   kpi: string;
 }
 
+export interface AlarmPhase1Response {
+  success: boolean;
+  message: string;
+  session_id: string;
+  alarm_date: string;
+  alarm_eqp_id: string;
+  alarm_kpi: string;
+  root_causes: RootCause[];
+  llm_calls: number;
+  processing_time?: number;
+}
+
+export interface AlarmPhase2Response {
+  success: boolean;
+  message: string;
+  alarm_date: string;
+  alarm_eqp_id: string;
+  alarm_kpi: string;
+  selected_cause: RootCause;
+  final_report: string;
+  report_id: string;
+  rag_saved: boolean;
+  llm_calls: number;
+  processing_time?: number;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';

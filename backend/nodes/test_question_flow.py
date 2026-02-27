@@ -18,7 +18,7 @@ def test_question_with_existing_report():
     """과거 리포트가 있는 질문 테스트"""
     
     print("\n" + "=" * 60)
-    print("🧪 과거 리포트가 있는 질문 테스트")
+    print("과거 리포트가 있는 질문 테스트")
     print("=" * 60 + "\n")
     
     # 질문: EQP01 OEE 문제 (과거 리포트 있음)
@@ -28,12 +28,12 @@ def test_question_with_existing_report():
     }
     
     # Node 1: Input Router
-    print("1️⃣ Node 1 실행...")
+    print("1. Node 1 실행...")
     result1 = node_1_input_router(state)
     state.update(result1)
     
     # Node 4: Report Lookup
-    print("2️⃣ Node 4 실행...")
+    print("2. Node 4 실행...")
     result4 = node_4_report_lookup(state)
     state.update(result4)
     
@@ -42,7 +42,7 @@ def test_question_with_existing_report():
     print(f"   report_exists: {state.get('report_exists')}")
     
     # Node 5: RAG Answer
-    print("\n3️⃣ Node 5 실행...")
+    print("\n3. Node 5 실행...")
     result5 = node_5_rag_answer(state)
     state.update(result5)
     
@@ -50,18 +50,18 @@ def test_question_with_existing_report():
     assert 'error' not in state, f"에러 발생: {state.get('error')}"
     assert state.get('final_answer') is not None, "답변 없음"
     
-    print(f"\n✅ 질문 답변 성공!")
+    print(f"\n질문 답변 성공!")
     print(f"   참고 리포트: {len(state.get('similar_reports', []))}개")
     print(f"   답변 길이: {len(state['final_answer'])}자")
     
-    print("\n✅ 과거 리포트가 있는 질문 테스트 통과!\n")
+    print("\n과거 리포트가 있는 질문 테스트 통과!\n")
 
 
 def test_question_without_existing_report():
     """과거 리포트가 없는 질문 테스트"""
     
     print("=" * 60)
-    print("🧪 과거 리포트가 없는 질문 테스트")
+    print("과거 리포트가 없는 질문 테스트")
     print("=" * 60 + "\n")
     
     # 질문: 관련 없는 질문
@@ -79,18 +79,18 @@ def test_question_without_existing_report():
     assert 'error' not in state, f"에러 발생: {state.get('error')}"
     assert state.get('final_answer') is not None, "답변 없음"
     
-    print(f"\n✅ 답변 생성 완료!")
+    print(f"\n답변 생성 완료!")
     print(f"   report_exists: {state.get('report_exists')}")
     print(f"   답변 길이: {len(state['final_answer'])}자")
     
-    print("\n✅ 과거 리포트가 없는 질문 테스트 통과!\n")
+    print("\n과거 리포트가 없는 질문 테스트 통과!\n")
 
 
 def test_various_questions():
     """다양한 질문 테스트"""
     
     print("=" * 60)
-    print("🧪 다양한 질문 테스트")
+    print("다양한 질문 테스트")
     print("=" * 60 + "\n")
     
     questions = [
@@ -118,14 +118,14 @@ def test_various_questions():
         print(f"   참고 문서: {len(state.get('similar_reports', []))}개")
         print(f"   답변 길이: {len(state.get('final_answer', ''))}자")
     
-    print("\n✅ 다양한 질문 테스트 통과!\n")
+    print("\n다양한 질문 테스트 통과!\n")
 
 
 def test_full_question_workflow():
     """전체 질문 워크플로우 테스트"""
     
     print("=" * 60)
-    print("🧪 전체 질문 워크플로우 테스트")
+    print("전체 질문 워크플로우 테스트")
     print("=" * 60 + "\n")
     
     state = {
@@ -134,45 +134,45 @@ def test_full_question_workflow():
         'metadata': {'llm_calls': 0}
     }
     
-    print("🔄 질문 답변 워크플로우 시작...\n")
+    print("질문 답변 워크플로우 시작...\n")
     
     # Node 1
-    print("1️⃣ Node 1: Input Router")
+    print("1. Node 1: Input Router")
     state.update(node_1_input_router(state))
-    print(f"   ✅ 타입: {state['input_type']}\n")
+    print(f"   타입: {state['input_type']}\n")
     
     # Node 4
-    print("2️⃣ Node 4: Report Lookup")
+    print("2. Node 4: Report Lookup")
     state.update(node_4_report_lookup(state))
-    print(f"   ✅ 리포트 존재: {state['report_exists']}\n")
+    print(f"   리포트 존재: {state['report_exists']}\n")
     
     # Node 5
-    print("3️⃣ Node 5: RAG Answer")
+    print("3. Node 5: RAG Answer")
     state.update(node_5_rag_answer(state))
-    print(f"   ✅ 답변 생성 완료\n")
+    print(f"   답변 생성 완료\n")
     
     # 최종 결과
     print("=" * 60)
-    print("🎉 질문 워크플로우 성공!")
+    print("질문 워크플로우 성공!")
     print("=" * 60)
     
-    print(f"\n💬 최종 답변:")
+    print(f"\n최종 답변:")
     print("=" * 60)
     print(state['final_answer'])
     print("=" * 60)
     
-    print(f"\n📊 통계:")
+    print(f"\n통계:")
     print(f"   질문: {state['question_text'][:50]}...")
     print(f"   참고 리포트: {len(state['similar_reports'])}개")
     print(f"   LLM 호출: {state['metadata']['llm_calls']}회")
     
-    print("\n✅ 전체 질문 워크플로우 테스트 통과!\n")
+    print("\n전체 질문 워크플로우 테스트 통과!\n")
 
 
 def main():
     """모든 테스트 실행"""
     
-    print("\n🧪 질문 경로 워크플로우 테스트 시작\n")
+    print("\n질문 경로 워크플로우 테스트 시작\n")
     
     try:
         test_question_with_existing_report()
@@ -181,14 +181,14 @@ def main():
         test_full_question_workflow()
         
         print("=" * 60)
-        print("🎊 모든 테스트 통과!")
+        print("모든 테스트 통과!")
         print("=" * 60 + "\n")
         
     except AssertionError as e:
-        print(f"\n❌ 테스트 실패: {e}\n")
+        print(f"\n[ERROR] 테스트 실패: {e}\n")
         raise
     except Exception as e:
-        print(f"\n❌ 예상치 못한 오류: {e}\n")
+        print(f"\n[ERROR] 예상치 못한 오류: {e}\n")
         import traceback
         traceback.print_exc()
         raise

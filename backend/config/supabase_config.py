@@ -30,9 +30,9 @@ class SupabaseConfig:
     def _validate_config(self):
         """필수 설정 값이 있는지 확인합니다."""
         if not self.url:
-            raise ValueError("❌ SUPABASE_URL이 .env 파일에 설정되지 않았습니다.")
+            raise ValueError("[ERROR] SUPABASE_URL이 .env 파일에 설정되지 않았습니다.")
         if not self.key:
-            raise ValueError("❌ SUPABASE_KEY가 .env 파일에 설정되지 않았습니다.")
+            raise ValueError("[ERROR] SUPABASE_KEY가 .env 파일에 설정되지 않았습니다.")
     
     def test_connection(self) -> bool:
         """
@@ -47,7 +47,7 @@ class SupabaseConfig:
             response = self.client.table('scenario_map').select('*').limit(1).execute()
             return True
         except Exception as e:
-            print(f"❌ 연결 실패: {str(e)}")
+            print(f"[ERROR] 연결 실패: {str(e)}")
             return False
     
     def get_scenario_map(self, date: str = None) -> List[Dict[str, Any]]:
@@ -92,7 +92,35 @@ class SupabaseConfig:
         
         response = query.execute()
         return response.data
-    
+
+    def get_kpi_trend(
+        self,
+        start_date: str,
+        end_date: str,
+        eqp_id: str = None
+    ) -> List[Dict[str, Any]]:
+        """
+        KPI_DAILY 테이블에서 날짜 범위의 KPI 추세 데이터 조회
+
+        Args:
+            start_date: 시작 날짜 (YYYY-MM-DD, 포함)
+            end_date: 종료 날짜 (YYYY-MM-DD, 포함)
+            eqp_id: 장비 ID
+
+        Returns:
+            List[Dict]: KPI 데이터 리스트 (날짜 오름차순)
+        """
+        query = self.client.table('kpi_daily').select('*') \
+            .gte('date', start_date) \
+            .lte('date', end_date) \
+            .order('date', desc=False)
+
+        if eqp_id:
+            query = query.eq('eqp_id', eqp_id)
+
+        response = query.execute()
+        return response.data
+
     def get_lot_state(
         self,
         start_time: str = None,
