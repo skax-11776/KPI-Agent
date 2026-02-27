@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  # FastAPI 백엔드
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: kpi-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # 개발 시 ChromaDB 데이터 유지
+      - ./backend/data:/app/backend/data
+    restart: unless-stopped
+
+  # React 프론트엔드
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: kpi-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

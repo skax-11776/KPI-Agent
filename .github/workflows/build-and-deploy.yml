@@ -1,0 +1,102 @@
+name: Build and Deploy to EKS
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_BACKEND: team-4-backend
+  ECR_FRONTEND: team-4-frontend
+  EKS_CLUSTER: ag-prod-eks
+  K8S_NAMESPACE: team-4
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 코드 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # AWS 자격증명 (OIDC)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # ECR 로그인
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 백엔드 이미지 빌드 & 푸시
+      - name: Build and push backend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f backend/Dockerfile -t $ECR_REGISTRY/$ECR_BACKEND:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_BACKEND:$IMAGE_TAG $ECR_REGISTRY/$ECR_BACKEND:latest
+          docker push $ECR_REGISTRY/$ECR_BACKEND:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_BACKEND:latest
+
+      # 프론트엔드 이미지 빌드 & 푸시
+      - name: Build and push frontend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f frontend/Dockerfile -t $ECR_REGISTRY/$ECR_FRONTEND:$IMAGE_TAG ./frontend
+          docker tag $ECR_REGISTRY/$ECR_FRONTEND:$IMAGE_TAG $ECR_REGISTRY/$ECR_FRONTEND:latest
+          docker push $ECR_REGISTRY/$ECR_FRONTEND:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_FRONTEND:latest
+
+      # EKS kubeconfig 설정
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ env.AWS_REGION }} \
+            --name ${{ env.EKS_CLUSTER }}
+
+      # 네임스페이스 & Secret 초기 설정
+      - name: Create namespace and secrets
+        run: |
+          kubectl create namespace ${{ env.K8S_NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret generic kpi-secrets \
+            --from-literal=AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            --from-literal=AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            --from-literal=SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+            --from-literal=SUPABASE_KEY="${{ secrets.SUPABASE_KEY }}" \
+            --from-literal=RDS_HOST="${{ secrets.RDS_HOST }}" \
+            --from-literal=RDS_PORT="${{ secrets.RDS_PORT }}" \
+            --from-literal=RDS_DB="${{ secrets.RDS_DB }}" \
+            --from-literal=RDS_USER="${{ secrets.RDS_USER }}" \
+            --from-literal=RDS_PASSWORD="${{ secrets.RDS_PASSWORD }}" \
+            --namespace=${{ env.K8S_NAMESPACE }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # K8s 배포
+      - name: Deploy to EKS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          kubectl apply -k k8s/
+          # 최신 이미지 태그로 업데이트
+          kubectl set image deployment/kpi-backend \
+            kpi-backend=$ECR_REGISTRY/$ECR_BACKEND:$IMAGE_TAG \
+            -n ${{ env.K8S_NAMESPACE }}
+          kubectl set image deployment/kpi-frontend \
+            kpi-frontend=$ECR_REGISTRY/$ECR_FRONTEND:$IMAGE_TAG \
+            -n ${{ env.K8S_NAMESPACE }}
+          # 배포 완료 대기
+          kubectl rollout status deployment/kpi-backend -n ${{ env.K8S_NAMESPACE }}
+          kubectl rollout status deployment/kpi-frontend -n ${{ env.K8S_NAMESPACE }}

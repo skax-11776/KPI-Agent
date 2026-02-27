@@ -1,0 +1,125 @@
+# 백엔드 Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kpi-backend
+  namespace: team-4
+  labels:
+    app: kpi-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kpi-backend
+  template:
+    metadata:
+      labels:
+        app: kpi-backend
+    spec:
+      containers:
+        - name: kpi-backend
+          image: 712394252893.dkr.ecr.ap-northeast-2.amazonaws.com/team-4-backend:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: AWS_REGION
+              value: "ap-northeast-2"
+            - name: BEDROCK_MODEL_ID
+              value: "anthropic.claude-3-haiku-20240307-v1:0"
+            - name: BEDROCK_EMBEDDING_MODEL_ID
+              value: "amazon.titan-embed-text-v2:0"
+            - name: CHROMA_DB_PATH
+              value: "./backend/data/chromadb"
+            - name: S3_BUCKET
+              value: "ag-prod-s3-bucket"
+            - name: S3_PREFIX
+              value: "team4-bucket/"
+            - name: ENVIRONMENT
+              value: "production"
+            # 민감한 값은 Secret에서 주입
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: kpi-secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kpi-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kpi-secrets
+                  key: SUPABASE_URL
+            - name: SUPABASE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kpi-secrets
+                  key: SUPABASE_KEY
+            - name: RDS_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: kpi-secrets
+                  key: RDS_HOST
+            - name: RDS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: kpi-secrets
+                  key: RDS_PORT
+            - name: RDS_DB
+              valueFrom:
+                secretKeyRef:
+                  name: kpi-secrets
+                  key: RDS_DB
+            - name: RDS_USER
+              valueFrom:
+                secretKeyRef:
+                  name: kpi-secrets
+                  key: RDS_USER
+            - name: RDS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kpi-secrets
+                  key: RDS_PASSWORD
+            - name: RDS_SCHEMA
+              value: "kpi_monitor"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+
+---
+# 프론트엔드 Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kpi-frontend
+  namespace: team-4
+  labels:
+    app: kpi-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kpi-frontend
+  template:
+    metadata:
+      labels:
+        app: kpi-frontend
+    spec:
+      containers:
+        - name: kpi-frontend
+          image: 712394252893.dkr.ecr.ap-northeast-2.amazonaws.com/team-4-frontend:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"

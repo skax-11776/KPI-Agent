@@ -1,0 +1,30 @@
+# 백엔드 Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: kpi-backend
+  namespace: team-4
+spec:
+  selector:
+    app: kpi-backend
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP   # 클러스터 내부에서만 접근 (프론트엔드 → 백엔드)
+
+---
+# 프론트엔드 Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: kpi-frontend
+  namespace: team-4
+spec:
+  selector:
+    app: kpi-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer  # AWS ELB 자동 생성 → 외부에서 접근 가능
