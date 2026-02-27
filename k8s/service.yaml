@@ -20,6 +20,9 @@ kind: Service
 metadata:
   name: kpi-frontend
   namespace: team-4
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
 spec:
   selector:
     app: kpi-frontend
