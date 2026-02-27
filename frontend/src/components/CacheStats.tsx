@@ -12,7 +12,7 @@ const CacheStats: React.FC = () => {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8000/api/system/cache/stats');
+      const response = await axios.get('/api/system/cache/stats');
       setStats(response.data);
     } catch (error) {
       console.error('캐시 통계 조회 실패:', error);
@@ -23,7 +23,7 @@ const CacheStats: React.FC = () => {
 
   const clearCache = async (cacheType: string) => {
     try {
-      await axios.post(`http://localhost:8000/api/system/cache/clear?cache_type=${cacheType}`);
+      await axios.post(`/api/system/cache/clear?cache_type=${cacheType}`);
       alert(`${cacheType} 캐시가 초기화되었습니다.`);
       fetchStats();
     } catch (error) {

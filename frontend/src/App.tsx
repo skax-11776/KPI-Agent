@@ -245,7 +245,7 @@ async function callLLM(messages:{role:string;content:string}[]):Promise<{text:st
   // 백엔드 FastAPI 서버 경유 (AWS Bedrock 사용)
   // 백엔드: backend/api/main.py 실행 필요
   try {
-    const res = await fetch("http://localhost:8000/api/chat", {
+    const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -429,7 +429,7 @@ function ReportPanel({report,onClose}:{report:Report;onClose:()=>void}) {
     </div>
   );
 }
-const API_BASE = "http://localhost:8000";
+const API_BASE = "";
 
 // 백엔드에서 PDF 목록 가져오기
 async function fetchReportList(): Promise<{filename:string;size:number;created_at:string}[]> {
