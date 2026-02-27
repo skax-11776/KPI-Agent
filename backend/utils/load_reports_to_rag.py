@@ -78,7 +78,7 @@ def parse_report_filename(filename: str) -> dict:
     }
 
 
-def load_reports_to_rag(reports_dir: str = "data/reports"):
+def load_reports_to_rag(reports_dir: str = "backend/data/reports"):
     """
     reports 폴더의 모든 PDF를 ChromaDB에 로드합니다.
     

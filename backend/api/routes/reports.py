@@ -16,7 +16,7 @@ from datetime import datetime
 router = APIRouter(tags=["Reports"])
 
 # PDF 저장 폴더 경로
-REPORTS_DIR = Path(__file__).parent.parent.parent.parent / "data" / "reports"
+REPORTS_DIR = Path(__file__).parent.parent.parent / "data" / "reports"
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 

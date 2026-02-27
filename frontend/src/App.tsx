@@ -653,7 +653,7 @@ function SettingsPage({thresholds,setThresholds}:{thresholds:Thresholds;setThres
         {[
           {label:"백엔드 서버",value:"http://localhost:8000"},
           {label:"LLM 모델",value:"AWS Bedrock / Claude Haiku"},
-          {label:"Vector DB",value:"ChromaDB · ./data/chromadb"},
+          {label:"Vector DB",value:"ChromaDB · ./backend/data/chromadb"},
           {label:"관계형 DB",value:"Supabase PostgreSQL"},
           {label:"보고서 폴더",value:"./backend/data/reports/"},
         ].map(({label,value})=>(
