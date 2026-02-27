@@ -22,4 +22,4 @@ ENV PYTHONUNBUFFERED=1 \
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python backend/utils/load_reports_to_rag.py && uvicorn backend.api.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "python -c 'from backend.utils.load_reports_to_rag import load_reports_to_rag; load_reports_to_rag()' ; uvicorn backend.api.main:app --host 0.0.0.0 --port 8000"]
