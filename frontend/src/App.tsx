@@ -601,7 +601,7 @@ function SettingsPage({thresholds,setThresholds}:{thresholds:Thresholds;setThres
     setSaving(true);
     setSaveError("");
     try {
-      const res = await fetch("http://localhost:8000/api/system/settings/targets", {
+      const res = await fetch("/api/system/settings/targets", {
         method: "PUT",
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify(thresholds),
@@ -708,22 +708,22 @@ useEffect(()=>{
 }, []);
 // Supabase 데이터 로드
 useEffect(()=>{
-  fetch("http://localhost:8000/api/dashboard-summary")
+  fetch("/api/dashboard-summary")
     .then(r=>r.json())
     .then(d=>{ if(d.success) setDashboardSummary(d.latest); })
     .catch(()=>{});
 
-  fetch("http://localhost:8000/api/kpi-daily")
+  fetch("/api/kpi-daily")
     .then(r=>r.json())
     .then(d=>{ if(d.success) setDbKpiData(d.data); })
     .catch(()=>{});
 
-  fetch("http://localhost:8000/api/scenario-map")
+  fetch("/api/scenario-map")
     .then(r=>r.json())
     .then(d=>{ if(d.success) setDbScenarioData(d.data); })
     .catch(()=>{});
 
-  fetch("http://localhost:8000/api/rcp-state")
+  fetch("/api/rcp-state")
     .then(r=>r.json())
     .then(d=>{ if(d.success) setDbRcpData(d.data); })
     .catch(()=>{});
@@ -774,19 +774,19 @@ useEffect(()=>{
 
   useEffect(()=>{
   // 대시보드 요약
-  fetch("http://localhost:8000/api/dashboard-summary")
+  fetch("/api/dashboard-summary")
     .then(r=>r.json())
     .then(d=>{ if(d.success) setDashboardSummary(d.latest); })
     .catch(()=>{});
 
   // KPI 전체 데이터
-  fetch("http://localhost:8000/api/kpi-daily")
+  fetch("/api/kpi-daily")
     .then(r=>r.json())
     .then(d=>{ if(d.success) setDbKpiData(d.data); })
     .catch(()=>{});
 
   // RCP 데이터
-  fetch("http://localhost:8000/api/rcp-state")
+  fetch("/api/rcp-state")
     .then(r=>r.json())
     .then(d=>{ if(d.success) setDbRcpData(d.data); })
     .catch(()=>{});
@@ -798,7 +798,7 @@ useEffect(()=>{
     const p = new URLSearchParams({page: String(dbPage), page_size:"1000"});
     if (dbFilterDate!=="all") p.append("date", dbFilterDate);
     if (dbFilterEqp!=="all")  p.append("eqp_id", dbFilterEqp);
-    fetch(`http://localhost:8000/api/eqp-state?${p}`)
+    fetch(`/api/eqp-state?${p}`)
       .then(r=>r.json())
       .then(d=>{ if(d.success){ setDbEqpData(d.data); setDbEqpTotal(d.total_count||0); } })
       .catch(()=>{});
@@ -806,7 +806,7 @@ useEffect(()=>{
     const p = new URLSearchParams({page: String(dbPage), page_size:"1000"});
     if (dbFilterDate!=="all") p.append("date", dbFilterDate);
     if (dbFilterEqp!=="all")  p.append("eqp_id", dbFilterEqp);
-    fetch(`http://localhost:8000/api/lot-state?${p}`)
+    fetch(`/api/lot-state?${p}`)
       .then(r=>r.json())
       .then(d=>{ if(d.success){ setDbLotData(d.data); setDbLotTotal(d.total_count||0); } })
       .catch(()=>{});
@@ -816,12 +816,12 @@ useEffect(()=>{
 // EQP_STATE / LOT_STATE 메타데이터 fetch (탭 전환 시 1회)
 useEffect(()=>{
   if (dbTable==="eqp_state" && dbEqpMeta.dates.length===0) {
-    fetch("http://localhost:8000/api/eqp-state/meta")
+    fetch("/api/eqp-state/meta")
       .then(r=>r.json())
       .then(d=>{ if(d.success) setDbEqpMeta({dates:d.dates, eqps:d.eqps}); })
       .catch(()=>{});
   } else if (dbTable==="lot_state" && dbLotMeta.dates.length===0) {
-    fetch("http://localhost:8000/api/lot-state/meta")
+    fetch("/api/lot-state/meta")
       .then(r=>r.json())
       .then(d=>{ if(d.success) setDbLotMeta({dates:d.dates, eqps:d.eqps}); })
       .catch(()=>{});
