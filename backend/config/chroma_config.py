@@ -69,6 +69,12 @@ class ChromaDBConfig:
                 ids=[report_id]
             )
             print(f"저장 완료: {report_id}")
+            # ChromaDB → S3 백업
+            try:
+                from backend.utils.chromadb_s3_sync import sync_to_s3
+                sync_to_s3()
+            except Exception as se:
+                print(f"[WARN] S3 백업 실패 (ChromaDB 저장은 완료): {se}")
             return True
         except Exception as e:
             print(f"[ERROR] 저장 실패: {str(e)}")
@@ -188,6 +194,12 @@ class ChromaDBConfig:
         try:
             self.collection.delete(ids=[report_id])
             print(f"리포트 삭제 완료: {report_id}")
+            # ChromaDB → S3 백업
+            try:
+                from backend.utils.chromadb_s3_sync import sync_to_s3
+                sync_to_s3()
+            except Exception as se:
+                print(f"[WARN] S3 백업 실패 (삭제는 완료): {se}")
             return True
         except Exception as e:
             print(f"[ERROR] 삭제 실패: {str(e)}")
