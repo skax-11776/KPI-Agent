@@ -582,6 +582,7 @@ function SettingsPage({thresholds,setThresholds}:{thresholds:Thresholds;setThres
         </button>
         {saveError&&<div style={{marginTop:8,fontSize:12,color:"#dc2626",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:6,padding:"6px 10px"}}>{saveError}</div>}
       </div>
+
       <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"20px 24px"}}>
         <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>시스템 정보</div>
         {[

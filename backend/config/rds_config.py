@@ -268,6 +268,52 @@ class RDSConfig:
             )
         return self._execute_query(f"SELECT * FROM {s}.rcp_state")
 
+    def _execute_update(self, query: str, params: tuple = None) -> int:
+        """
+        UPDATE/INSERT/DELETE 쿼리를 실행하고 영향받은 행 수를 반환합니다.
+
+        Returns:
+            int: 변경된 행 수
+        """
+        conn = self.get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(query, params)
+            affected = cur.rowcount
+            conn.commit()
+            cur.close()
+            return affected
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    def update_kpi_targets(
+        self,
+        oee_t: float,
+        thp_t: float,
+        tat_t: float,
+        wip_t: float,
+    ) -> int:
+        """
+        kpi_daily 테이블 전체의 목표값(target)을 업데이트합니다.
+
+        Returns:
+            int: 업데이트된 행 수
+        """
+        s = self.schema
+        return self._execute_update(
+            f"""
+            UPDATE {s}.kpi_daily
+            SET oee_t = %s,
+                thp_t = %s,
+                tat_t = %s,
+                wip_t = %s
+            """,
+            (oee_t, thp_t, tat_t, wip_t),
+        )
+
 
 # 싱글톤 패턴: 프로그램 전체에서 하나의 설정 객체만 사용
 rds_config = RDSConfig()

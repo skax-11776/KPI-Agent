@@ -5,7 +5,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from backend.utils.cache import analysis_cache, qa_cache
-from backend.config.supabase_config import supabase_config
+from backend.config.rds_config import rds_config
 
 router = APIRouter(prefix="/system", tags=["System"])
 
@@ -21,27 +21,25 @@ class TargetSettings(BaseModel):
 @router.put("/settings/targets")
 async def update_targets(settings: TargetSettings):
     """
-    KPI 목표값(임계값)을 kpi_daily 테이블 전체에 업데이트합니다.
+    KPI 목표값(임계값)을 kpi_daily 테이블 전체에 업데이트합니다. (Amazon RDS)
 
     Args:
         settings: 새로운 목표값 (oee_min, thp_min, tat_max, wip_min, wip_max)
     """
     try:
         wip_t = round((settings.wip_min + settings.wip_max) / 2)
-        result = supabase_config.client.table('kpi_daily').update({
-            'oee_t': int(settings.oee_min),   # bigint 컬럼
-            'thp_t': int(settings.thp_min),   # bigint 컬럼
-            'tat_t': float(settings.tat_max), # numeric 컬럼 (소수점 허용)
-            'wip_t': wip_t,                   # round() → int
-        }).gte('date', '2000-01-01').execute()
-
-        updated_count = len(result.data) if result.data else 0
-        print(f"[system] kpi_daily 업데이트 결과: {updated_count}행 변경")
+        updated_count = rds_config.update_kpi_targets(
+            oee_t=float(settings.oee_min),
+            thp_t=float(settings.thp_min),
+            tat_t=float(settings.tat_max),
+            wip_t=float(wip_t),
+        )
+        print(f"[system] kpi_daily RDS 업데이트 결과: {updated_count}행 변경")
 
         if updated_count == 0:
             raise HTTPException(
                 status_code=500,
-                detail="업데이트된 행이 없습니다. Supabase RLS 정책(UPDATE 권한) 또는 테이블 데이터를 확인하세요."
+                detail="업데이트된 행이 없습니다. kpi_daily 테이블 데이터를 확인하세요."
             )
 
         return {
@@ -58,7 +56,7 @@ async def update_targets(settings: TargetSettings):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Supabase 업데이트 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"RDS 업데이트 실패: {str(e)}")
 
 
 @router.get("/cache/stats")
