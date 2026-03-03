@@ -588,7 +588,7 @@ function SettingsPage({thresholds,setThresholds}:{thresholds:Thresholds;setThres
           {label:"백엔드 서버",value:"http://localhost:8000"},
           {label:"LLM 모델",value:"AWS Bedrock / Claude Haiku"},
           {label:"Vector DB",value:"ChromaDB · ./backend/data/chromadb"},
-          {label:"관계형 DB",value:"Supabase PostgreSQL"},
+          {label:"관계형 DB",value:"Amazon RDS (PostgreSQL)"},
           {label:"보고서 폴더",value:"./backend/data/reports/"},
         ].map(({label,value})=>(
           <div key={label} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
@@ -841,7 +841,7 @@ useEffect(()=>{
          activeTab==="alarms"?"최신 알람(2026-01-31) / 과거 이력 PDF 11건":
          activeTab==="chat"?"AWS Bedrock Claude Haiku · RAG(ChromaDB) 기반 분석":
          activeTab==="analytics"?"KPI 장기 트렌드 · 알람 패턴 분석":
-         activeTab==="settings"?"알람 임계값 · 알림 설정":"Supabase PostgreSQL · 5개 테이블"}
+         activeTab==="settings"?"알람 임계값 · 알림 설정":"Amazon RDS (PostgreSQL) · 5개 테이블"}
       </p>
     </div>
   </div>
@@ -1149,7 +1149,7 @@ useEffect(()=>{
         {activeTab==="database"&&(
           <div style={S.content}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20,padding:"12px 16px",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8}}>
-              <span style={{fontSize:11,fontWeight:700,color:"#166534",letterSpacing:0.5}}>Supabase PostgreSQL</span>
+              <span style={{fontSize:11,fontWeight:700,color:"#166534",letterSpacing:0.5}}>Amazon RDS (PostgreSQL)</span>
               <span style={{fontSize:13,color:"#166534"}}>5개 테이블 원본 데이터 · 읽기 전용</span>
             </div>
             {/* 테이블 탭 */}
