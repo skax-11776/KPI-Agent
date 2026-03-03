@@ -849,10 +849,10 @@ useEffect(()=>{
   <div style={{display:"flex",alignItems:"center",gap:10}}>
     
     {[
-  {label:"OEE", val:`${(dashboardSummary?.oee_v ?? kpi.oee).toFixed(1)}%`, bad:(dashboardSummary?.oee_v ?? kpi.oee)<thresholds.oee_min, color:"#2563eb"},
-  {label:"THP", val:String(dashboardSummary?.thp_v ?? kpi.thp), bad:(dashboardSummary?.thp_v ?? kpi.thp)<thresholds.thp_min, color:"#059669"},
-  {label:"TAT", val:`${(dashboardSummary?.tat_v ?? kpi.tat).toFixed(2)}h`, bad:(dashboardSummary?.tat_v ?? kpi.tat)>thresholds.tat_max, color:"#d97706"},
-  {label:"WIP", val:String(dashboardSummary?.wip_v ?? kpi.wip), bad:(dashboardSummary?.wip_v ?? kpi.wip)<thresholds.wip_min||(dashboardSummary?.wip_v ?? kpi.wip)>thresholds.wip_max, color:"#7c3aed"},
+  {label:"OEE", val:`${kpi.oee.toFixed(1)}%`, bad:kpi.oee<thresholds.oee_min, color:"#2563eb"},
+  {label:"THP", val:String(kpi.thp), bad:kpi.thp<thresholds.thp_min, color:"#059669"},
+  {label:"TAT", val:`${kpi.tat.toFixed(2)}h`, bad:kpi.tat>thresholds.tat_max, color:"#d97706"},
+  {label:"WIP", val:String(kpi.wip), bad:kpi.wip<thresholds.wip_min||kpi.wip>thresholds.wip_max, color:"#7c3aed"},
 ].map(({label,val,bad,color})=>(
   <div key={label} style={{
     padding:"5px 12px", borderRadius:8,
