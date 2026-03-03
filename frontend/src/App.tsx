@@ -119,72 +119,6 @@ const REPORTS: Report[] = [
    pdf_raw:{basic_info:"날짜: 2026-01-30 | 시간: 22:51 | 장비: EQP11 | 라인: LINE3 | 공정: OPER1",problem:"문제 KPI: OEE\n목표치: 70.0% | 실제치: 50.56% | 차이: -19.44%",root_cause:"1. 장비 다운타임 3시간 발생 (01:25~04:25)\n2. RCP01 레시피 실행 중 HOLD 상태 발생\n3. 복잡도 높은 레시피(9/10) 사용으로 인한 처리 시간 증가",scenario:"1. 장비 긴급 점검 및 유지보수 실시\n2. 다운타임 발생 원인 파악 (센서 오류)\n3. 레시피 파라미터 조정 (복잡도 낮은 RCP02로 전환)\n4. 예방 정비 스케줄 재조정",result:"OEE 회복: 50.56% → 70.0% (다음날 예상)\n다운타임 제로화\n예상 손실 비용: 약 500만원 절감"}},
 ];
 
-// ────────────────────────── DB 원본 데이터 샘플 ──────────────────────────
-const DB_KPI_DAILY = [
-  {date:"2026-01-20",eqp_id:"EQP01",line_id:"LINE1",oper_id:"OPER1",oee_t:70,oee_v:53.51,thp_t:175,thp_v:175,good_out_qty:175,tat_t:3.5,tat_v:3.02,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-21",eqp_id:"EQP02",line_id:"LINE1",oper_id:"OPER1",oee_t:70,oee_v:76.44,thp_t:250,thp_v:228,good_out_qty:228,tat_t:3.5,tat_v:2.27,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-22",eqp_id:"EQP03",line_id:"LINE1",oper_id:"OPER1",oee_t:70,oee_v:76.44,thp_t:250,thp_v:240,good_out_qty:240,tat_t:3.5,tat_v:4.10,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-23",eqp_id:"EQP04",line_id:"LINE1",oper_id:"OPER2",oee_t:70,oee_v:76.44,thp_t:250,thp_v:250,good_out_qty:250,tat_t:3.5,tat_v:2.17,wip_t:250,wip_v:670,alarm_flag:1},
-  {date:"2026-01-24",eqp_id:"EQP05",line_id:"LINE1",oper_id:"OPER2",oee_t:70,oee_v:76.44,thp_t:250,thp_v:250,good_out_qty:250,tat_t:3.5,tat_v:2.17,wip_t:250,wip_v:218,alarm_flag:1},
-  {date:"2026-01-25",eqp_id:"EQP06",line_id:"LINE1",oper_id:"OPER2",oee_t:70,oee_v:56.48,thp_t:250,thp_v:250,good_out_qty:250,tat_t:3.5,tat_v:2.17,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-26",eqp_id:"EQP07",line_id:"LINE2",oper_id:"OPER3",oee_t:70,oee_v:76.44,thp_t:250,thp_v:232,good_out_qty:232,tat_t:3.5,tat_v:2.17,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-27",eqp_id:"EQP08",line_id:"LINE2",oper_id:"OPER3",oee_t:70,oee_v:76.44,thp_t:250,thp_v:250,good_out_qty:250,tat_t:3.5,tat_v:4.25,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-28",eqp_id:"EQP09",line_id:"LINE2",oper_id:"OPER3",oee_t:70,oee_v:76.44,thp_t:250,thp_v:250,good_out_qty:250,tat_t:3.5,tat_v:2.17,wip_t:250,wip_v:730,alarm_flag:1},
-  {date:"2026-01-29",eqp_id:"EQP10",line_id:"LINE2",oper_id:"OPER4",oee_t:70,oee_v:76.44,thp_t:250,thp_v:250,good_out_qty:250,tat_t:3.5,tat_v:2.17,wip_t:250,wip_v:295,alarm_flag:1},
-  {date:"2026-01-30",eqp_id:"EQP11",line_id:"LINE2",oper_id:"OPER4",oee_t:70,oee_v:50.56,thp_t:250,thp_v:175,good_out_qty:175,tat_t:3.5,tat_v:3.02,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-31",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",oee_t:70,oee_v:76.44,thp_t:250,thp_v:227,good_out_qty:227,tat_t:3.5,tat_v:2.27,wip_t:250,wip_v:250,alarm_flag:1},
-];
-const DB_SCENARIO_MAP = [
-  {date:"2026-01-20",alarm_eqp_id:"EQP01",alarm_kpi:"OEE"},
-  {date:"2026-01-21",alarm_eqp_id:"EQP02",alarm_kpi:"THP"},
-  {date:"2026-01-22",alarm_eqp_id:"EQP03",alarm_kpi:"TAT"},
-  {date:"2026-01-23",alarm_eqp_id:"EQP04",alarm_kpi:"WIP_EXCEED"},
-  {date:"2026-01-24",alarm_eqp_id:"EQP05",alarm_kpi:"WIP_SHORTAGE"},
-  {date:"2026-01-25",alarm_eqp_id:"EQP06",alarm_kpi:"OEE"},
-  {date:"2026-01-26",alarm_eqp_id:"EQP07",alarm_kpi:"THP"},
-  {date:"2026-01-27",alarm_eqp_id:"EQP08",alarm_kpi:"TAT"},
-  {date:"2026-01-28",alarm_eqp_id:"EQP09",alarm_kpi:"WIP_EXCEED"},
-  {date:"2026-01-29",alarm_eqp_id:"EQP10",alarm_kpi:"WIP_SHORTAGE"},
-  {date:"2026-01-30",alarm_eqp_id:"EQP11",alarm_kpi:"OEE"},
-  {date:"2026-01-31",alarm_eqp_id:"EQP12",alarm_kpi:"THP"},
-];
-const DB_RCP_STATE = [
-  {rcp_id:"RCP01",eqp_id:"EQP01",complex_level:9},{rcp_id:"RCP02",eqp_id:"EQP01",complex_level:4},
-  {rcp_id:"RCP03",eqp_id:"EQP02",complex_level:3},{rcp_id:"RCP04",eqp_id:"EQP02",complex_level:8},
-  {rcp_id:"RCP05",eqp_id:"EQP03",complex_level:5},{rcp_id:"RCP06",eqp_id:"EQP03",complex_level:6},
-  {rcp_id:"RCP07",eqp_id:"EQP04",complex_level:3},{rcp_id:"RCP08",eqp_id:"EQP04",complex_level:5},
-  {rcp_id:"RCP09",eqp_id:"EQP05",complex_level:8},{rcp_id:"RCP10",eqp_id:"EQP05",complex_level:5},
-  {rcp_id:"RCP11",eqp_id:"EQP06",complex_level:9},{rcp_id:"RCP12",eqp_id:"EQP06",complex_level:9},
-  {rcp_id:"RCP13",eqp_id:"EQP07",complex_level:8},{rcp_id:"RCP14",eqp_id:"EQP07",complex_level:10},
-  {rcp_id:"RCP15",eqp_id:"EQP08",complex_level:8},{rcp_id:"RCP16",eqp_id:"EQP08",complex_level:4},
-  {rcp_id:"RCP17",eqp_id:"EQP09",complex_level:9},{rcp_id:"RCP18",eqp_id:"EQP09",complex_level:8},
-  {rcp_id:"RCP19",eqp_id:"EQP10",complex_level:3},{rcp_id:"RCP20",eqp_id:"EQP10",complex_level:5},
-  {rcp_id:"RCP21",eqp_id:"EQP11",complex_level:4},{rcp_id:"RCP22",eqp_id:"EQP11",complex_level:10},
-  {rcp_id:"RCP23",eqp_id:"EQP12",complex_level:8},{rcp_id:"RCP24",eqp_id:"EQP12",complex_level:10},
-];
-const DB_EQP_STATE = [
-  {event_time:"2026-01-31 00:00",end_time:"2026-01-31 00:30",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"-",rcp_id:"-",eqp_state:"IDLE"},
-  {event_time:"2026-01-31 00:30",end_time:"2026-01-31 01:25",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02864",rcp_id:"RCP23",eqp_state:"RUN"},
-  {event_time:"2026-01-31 01:25",end_time:"2026-01-31 01:40",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02864",rcp_id:"RCP23",eqp_state:"DOWN"},
-  {event_time:"2026-01-31 01:40",end_time:"2026-01-31 02:35",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02864",rcp_id:"RCP23",eqp_state:"RUN"},
-  {event_time:"2026-01-31 02:35",end_time:"2026-01-31 02:40",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"-",rcp_id:"-",eqp_state:"IDLE"},
-  {event_time:"2026-01-31 02:40",end_time:"2026-01-31 03:35",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02865",rcp_id:"RCP24",eqp_state:"RUN"},
-  {event_time:"2026-01-31 03:35",end_time:"2026-01-31 03:50",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02865",rcp_id:"RCP24",eqp_state:"DOWN"},
-  {event_time:"2026-01-31 03:50",end_time:"2026-01-31 04:45",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02865",rcp_id:"RCP24",eqp_state:"RUN"},
-  {event_time:"2026-01-31 05:45",end_time:"2026-01-31 06:00",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02866",rcp_id:"RCP23",eqp_state:"DOWN"},
-  {event_time:"2026-01-31 07:55",end_time:"2026-01-31 08:10",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02867",rcp_id:"RCP24",eqp_state:"DOWN"},
-];
-const DB_LOT_STATE = [
-  {event_time:"2026-01-31 00:10",lot_id:"LOT_20260131_02864",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP23",lot_state:"WAIT",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-  {event_time:"2026-01-31 00:30",lot_id:"LOT_20260131_02864",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP23",lot_state:"RUN",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-  {event_time:"2026-01-31 01:25",lot_id:"LOT_20260131_02864",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP23",lot_state:"HOLD",in_cnt:25,hold_cnt:1,scrap_cnt:0},
-  {event_time:"2026-01-31 01:40",lot_id:"LOT_20260131_02864",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP23",lot_state:"RUN",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-  {event_time:"2026-01-31 02:35",lot_id:"LOT_20260131_02864",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP23",lot_state:"END",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-  {event_time:"2026-01-31 02:40",lot_id:"LOT_20260131_02865",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP24",lot_state:"RUN",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-  {event_time:"2026-01-31 03:35",lot_id:"LOT_20260131_02865",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP24",lot_state:"HOLD",in_cnt:25,hold_cnt:1,scrap_cnt:0},
-  {event_time:"2026-01-31 03:50",lot_id:"LOT_20260131_02865",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP24",lot_state:"RUN",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-  {event_time:"2026-01-31 04:45",lot_id:"LOT_20260131_02865",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP24",lot_state:"END",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-];
 
 // ────────────────────────── 유틸 함수 ──────────────────────────
 function getRate(r:Report):number {
@@ -695,8 +629,8 @@ export default function App() {
   const [dbPage,       setDbPage]       = useState<number>(1);
   const [dbEqpTotal,   setDbEqpTotal]   = useState<number>(0);
   const [dbLotTotal,   setDbLotTotal]   = useState<number>(0);
-  const [dbEqpMeta,    setDbEqpMeta]    = useState<{dates:string[];eqps:string[]}>({dates:[],eqps:[]});
-  const [dbLotMeta,    setDbLotMeta]    = useState<{dates:string[];eqps:string[]}>({dates:[],eqps:[]});
+  const [dbLoading,    setDbLoading]    = useState<boolean>(false);
+  const [dbError,      setDbError]      = useState<string|null>(null);
 
 // PDF 목록 로드 (컴포넌트 마운트 시 + 저장/삭제 후)
 useEffect(()=>{
@@ -706,26 +640,14 @@ useEffect(()=>{
   }, 5000);  // 5초마다 폴더 스캔
   return () => clearInterval(interval);
 }, []);
-// Supabase 데이터 로드
+// 대시보드 요약 로드 (마운트 시 1회)
 useEffect(()=>{
-  fetch("/api/dashboard-summary")
+  fetch("/api/rds/kpi-daily")
     .then(r=>r.json())
-    .then(d=>{ if(d.success) setDashboardSummary(d.latest); })
-    .catch(()=>{});
-
-  fetch("/api/kpi-daily")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbKpiData(d.data); })
-    .catch(()=>{});
-
-  fetch("/api/scenario-map")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbScenarioData(d.data); })
-    .catch(()=>{});
-
-  fetch("/api/rcp-state")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbRcpData(d.data); })
+    .then(d=>{ if(d.success && d.data?.length>0) {
+      const sorted=[...d.data].sort((a:any,b:any)=>b.date?.localeCompare(a.date));
+      setDashboardSummary(sorted[0]);
+    }})
     .catch(()=>{});
 }, []);
 
@@ -772,74 +694,35 @@ useEffect(()=>{
 
   useEffect(()=>{ chatEnd.current?.scrollIntoView({behavior:"smooth"}); },[msgs]);
 
-  useEffect(()=>{
-  // 대시보드 요약
-  fetch("/api/dashboard-summary")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDashboardSummary(d.latest); })
-    .catch(()=>{});
-
-  // KPI 전체 데이터
-  fetch("/api/kpi-daily")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbKpiData(d.data); })
-    .catch(()=>{});
-
-  // RCP 데이터
-  fetch("/api/rcp-state")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbRcpData(d.data); })
-    .catch(()=>{});
-}, []);
-
-// EQP_STATE / LOT_STATE 페이징 fetch (탭·페이지·필터 변경 시 재조회)
+// Database 탭 - 테이블 전환 시 RDS에서 데이터 로드
 useEffect(()=>{
-  if (dbTable==="eqp_state") {
-    fetch("/api/rds/eqp-state")
-      .then(r=>r.json())
-      .then(d=>{ if(d.success){ setDbEqpData(d.data); setDbEqpTotal(d.count||0); } })
-      .catch(()=>{});
-  } else if (dbTable==="lot_state") {
-    fetch("/api/rds/lot-state")
-      .then(r=>r.json())
-      .then(d=>{ if(d.success){ setDbLotData(d.data); setDbLotTotal(d.count||0); } })
-      .catch(()=>{});
-  }
-}, [dbTable]);
+  setDbLoading(true);
+  setDbError(null);
+  setDbFilterDate("all");
+  setDbFilterEqp("all");
+  setDbPage(1);
 
-// EQP_STATE / LOT_STATE 메타데이터 fetch (탭 전환 시 1회)
-useEffect(()=>{
-  if (dbTable==="eqp_state" && dbEqpMeta.dates.length===0) {
-    fetch("/api/eqp-state/meta")
-      .then(r=>r.json())
-      .then(d=>{ if(d.success) setDbEqpMeta({dates:d.dates, eqps:d.eqps}); })
-      .catch(()=>{});
-  } else if (dbTable==="lot_state" && dbLotMeta.dates.length===0) {
-    fetch("/api/lot-state/meta")
-      .then(r=>r.json())
-      .then(d=>{ if(d.success) setDbLotMeta({dates:d.dates, eqps:d.eqps}); })
-      .catch(()=>{});
-  }
-}, [dbTable]);
+  const endpoints: Record<string, string> = {
+    kpi_daily:    "/api/rds/kpi-daily",
+    scenario_map: "/api/rds/scenario-map",
+    rcp_state:    "/api/rds/rcp-state",
+    eqp_state:    "/api/rds/eqp-state",
+    lot_state:    "/api/rds/lot-state",
+  };
 
-// KPI_DAILY / SCENARIO_MAP / RCP_STATE 전체 데이터 fetch (탭 전환 시 1회)
-useEffect(()=>{
-  if (dbTable==="kpi_daily") {
-    fetch("/api/rds/kpi-daily")
-      .then(r=>r.json())
-      .then(d=>{ if(d.success) setDbKpiData(d.data); })
-      .catch(()=>{});
-  } else if (dbTable==="scenario_map") {
-    fetch("/api/rds/scenario-map")
-      .then(r=>r.json())
-      .then(d=>{ if(d.success) setDbScenarioData(d.data); })
-      .catch(()=>{});
-  } else if (dbTable==="rcp_state") {
-    fetch("/api/rds/rcp-state")
-      .then(r=>r.json())
-      .then(d=>{ if(d.success) setDbRcpData(d.data); })
-      .catch(()=>{});
-  }
+  fetch(endpoints[dbTable])
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d.success) throw new Error(d.error||d.detail||"조회 실패");
+      const rows = d.data || [];
+      if      (dbTable==="kpi_daily")    { setDbKpiData(rows); }
+      else if (dbTable==="scenario_map") { setDbScenarioData(rows); }
+      else if (dbTable==="rcp_state")    { setDbRcpData(rows); }
+      else if (dbTable==="eqp_state")    { setDbEqpData(rows); setDbEqpTotal(d.count||rows.length); }
+      else if (dbTable==="lot_state")    { setDbLotData(rows); setDbLotTotal(d.count||rows.length); }
+    })
+    .catch(e=>{ setDbError(e.message||"백엔드 연결 실패"); })
+    .finally(()=>{ setDbLoading(false); });
 }, [dbTable]);
 
   // LLM 전송
@@ -868,11 +751,11 @@ useEffect(()=>{
 
   // ── DB 필터 헬퍼 ──────────────────────────────────────────────
   const activeDbData =
-    dbTable==="kpi_daily"    ? (dbKpiData.length>0?dbKpiData:DB_KPI_DAILY) :
-    dbTable==="scenario_map" ? (dbScenarioData.length>0?dbScenarioData:DB_SCENARIO_MAP) :
-    dbTable==="rcp_state"    ? (dbRcpData.length>0?dbRcpData:DB_RCP_STATE) :
-    dbTable==="eqp_state"    ? (dbEqpData.length>0?dbEqpData:DB_EQP_STATE) :
-                               (dbLotData.length>0?dbLotData:DB_LOT_STATE);
+    dbTable==="kpi_daily"    ? dbKpiData :
+    dbTable==="scenario_map" ? dbScenarioData :
+    dbTable==="rcp_state"    ? dbRcpData :
+    dbTable==="eqp_state"    ? dbEqpData :
+                               dbLotData;
   const dbGetDate=(row:any):string|null=>
     dbTable==="kpi_daily"||dbTable==="scenario_map" ? (row.date??null) :
     dbTable==="eqp_state"||dbTable==="lot_state"    ? (row.event_time?.slice(0,10)??null) : null;
@@ -1285,7 +1168,23 @@ useEffect(()=>{
               ))}
             </div>
 
+            {/* 로딩 / 에러 상태 */}
+            {dbLoading && (
+              <div style={{textAlign:"center" as const,padding:"32px",color:"#6b7280",fontSize:13}}>
+                데이터 불러오는 중...
+              </div>
+            )}
+            {!dbLoading && dbError && (
+              <div style={{padding:"14px 18px",marginBottom:16,background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,color:"#dc2626",fontSize:13}}>
+                <strong>연결 오류:</strong> {dbError}
+                <div style={{marginTop:6,fontSize:11,color:"#9ca3af"}}>
+                  로컬 개발 시: <code>kubectl port-forward svc/kpi-backend 8000:8000 -n team-4</code> 실행 후 새로고침
+                </div>
+              </div>
+            )}
+
             {/* 날짜 · EQP 필터 바 */}
+            {!dbLoading && !dbError && (
             <div style={{display:"flex",gap:12,marginBottom:16,alignItems:"center",flexWrap:"wrap" as const,padding:"10px 14px",background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8}}>
               {dbTable!=="rcp_state"&&(
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -1328,6 +1227,7 @@ useEffect(()=>{
                 )}
               </div>
             </div>
+            )}
 
             {/* KPI_DAILY */}
             {dbTable==="kpi_daily"&&(
