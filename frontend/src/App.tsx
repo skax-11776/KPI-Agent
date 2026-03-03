@@ -8,7 +8,7 @@
 // ================================================================
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
-// ────────────────────────── 타입 ──────────────────────────
+// 타입
 interface Report {
   id: number; filename: string; date: string; time: string;
   eqp_id: string; line_id: string; oper_id: string; alarm_kpi: string;
