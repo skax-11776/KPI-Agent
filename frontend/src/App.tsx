@@ -1233,8 +1233,8 @@ useEffect(()=>{
             {dbTable==="kpi_daily"&&(
               <div style={S.tableWrap}>
                 <div style={S.tableHeader}>
-                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>KPI_DAILY — 전체 데이터</span>
-                  <span style={{fontSize:11,color:"#9ca3af"}}>총 {activeDbData.length} rows</span>
+                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>KPI_DAILY — alarm_flag = 1</span>
+                  <span style={{fontSize:11,color:"#9ca3af"}}>총 {filteredDbData.filter((r:any)=>r.alarm_flag===1).length} rows</span>
                 </div>
                 <div style={{overflowX:"auto" as const}}>
                   <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"Pretendard, sans-serif"}}>
@@ -1246,7 +1246,7 @@ useEffect(()=>{
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredDbData.map((row,i)=>(
+                      {filteredDbData.filter((r:any)=>r.alarm_flag===1).map((row,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:row.alarm_flag===1?"#fefce8":"#fff"}}>
                           <td style={{padding:"8px 12px",color:"#374151",whiteSpace:"nowrap" as const}}>{row.date}</td>
                           <td style={{padding:"8px 12px",fontWeight:700}}>{row.eqp_id}</td>
