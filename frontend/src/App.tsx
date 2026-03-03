@@ -795,23 +795,17 @@ useEffect(()=>{
 // EQP_STATE / LOT_STATE 페이징 fetch (탭·페이지·필터 변경 시 재조회)
 useEffect(()=>{
   if (dbTable==="eqp_state") {
-    const p = new URLSearchParams({page: String(dbPage), page_size:"1000"});
-    if (dbFilterDate!=="all") p.append("date", dbFilterDate);
-    if (dbFilterEqp!=="all")  p.append("eqp_id", dbFilterEqp);
-    fetch(`/api/eqp-state?${p}`)
+    fetch("/api/rds/eqp-state")
       .then(r=>r.json())
-      .then(d=>{ if(d.success){ setDbEqpData(d.data); setDbEqpTotal(d.total_count||0); } })
+      .then(d=>{ if(d.success){ setDbEqpData(d.data); setDbEqpTotal(d.count||0); } })
       .catch(()=>{});
   } else if (dbTable==="lot_state") {
-    const p = new URLSearchParams({page: String(dbPage), page_size:"1000"});
-    if (dbFilterDate!=="all") p.append("date", dbFilterDate);
-    if (dbFilterEqp!=="all")  p.append("eqp_id", dbFilterEqp);
-    fetch(`/api/lot-state?${p}`)
+    fetch("/api/rds/lot-state")
       .then(r=>r.json())
-      .then(d=>{ if(d.success){ setDbLotData(d.data); setDbLotTotal(d.total_count||0); } })
+      .then(d=>{ if(d.success){ setDbLotData(d.data); setDbLotTotal(d.count||0); } })
       .catch(()=>{});
   }
-}, [dbTable, dbPage, dbFilterDate, dbFilterEqp]);
+}, [dbTable]);
 
 // EQP_STATE / LOT_STATE 메타데이터 fetch (탭 전환 시 1회)
 useEffect(()=>{
@@ -831,17 +825,17 @@ useEffect(()=>{
 // KPI_DAILY / SCENARIO_MAP / RCP_STATE 전체 데이터 fetch (탭 전환 시 1회)
 useEffect(()=>{
   if (dbTable==="kpi_daily") {
-    fetch("/api/kpi-daily")
+    fetch("/api/rds/kpi-daily")
       .then(r=>r.json())
       .then(d=>{ if(d.success) setDbKpiData(d.data); })
       .catch(()=>{});
   } else if (dbTable==="scenario_map") {
-    fetch("/api/scenario-map")
+    fetch("/api/rds/scenario-map")
       .then(r=>r.json())
       .then(d=>{ if(d.success) setDbScenarioData(d.data); })
       .catch(()=>{});
   } else if (dbTable==="rcp_state") {
-    fetch("/api/rcp-state")
+    fetch("/api/rds/rcp-state")
       .then(r=>r.json())
       .then(d=>{ if(d.success) setDbRcpData(d.data); })
       .catch(()=>{});
@@ -885,19 +879,21 @@ useEffect(()=>{
   const dbGetEqp=(row:any):string|null=>
     dbTable==="scenario_map" ? (row.alarm_eqp_id??null) : (row.eqp_id??null);
   const isPaged = dbTable==="eqp_state"||dbTable==="lot_state";
-  // paged 테이블은 백엔드에서 필터링 → 클라이언트 필터 스킵
-  const filteredDbData = isPaged ? activeDbData : activeDbData.filter(row=>{
+  // RDS에서 전체 데이터 로드 → 모든 테이블 클라이언트 필터 적용
+  const filteredDbData = activeDbData.filter(row=>{
     const dOk=dbFilterDate==="all"||dbGetDate(row)===dbFilterDate;
     const eOk=dbFilterEqp==="all"||dbGetEqp(row)===dbFilterEqp;
     return dOk&&eOk;
   });
-  // 드롭다운 옵션: paged 테이블은 meta 데이터 사용, 나머지는 현재 데이터에서 추출
+  // 드롭다운 옵션: 로드된 데이터에서 추출
   const dbUniqDates=Array.from(new Set(activeDbData.map(dbGetDate).filter(Boolean) as string[])).sort();
   const dbUniqEqps =Array.from(new Set(activeDbData.map(dbGetEqp).filter(Boolean) as string[])).sort();
-  const filterDates = isPaged ? (dbTable==="eqp_state" ? dbEqpMeta.dates : dbLotMeta.dates) : dbUniqDates;
-  const filterEqps  = isPaged ? (dbTable==="eqp_state" ? dbEqpMeta.eqps  : dbLotMeta.eqps)  : dbUniqEqps;
-  const dbTotalCount = dbTable==="eqp_state" ? dbEqpTotal : dbTable==="lot_state" ? dbLotTotal : activeDbData.length;
-  const dbTotalPages = Math.max(1, Math.ceil(dbTotalCount/1000));
+  const filterDates = dbUniqDates;
+  const filterEqps  = dbUniqEqps;
+  const DB_PAGE_SIZE = 200;
+  const dbTotalCount = dbTable==="eqp_state" ? dbEqpTotal : dbTable==="lot_state" ? dbLotTotal : filteredDbData.length;
+  const dbTotalPages = isPaged ? Math.max(1, Math.ceil(filteredDbData.length / DB_PAGE_SIZE)) : 1;
+  const pagedDbData  = isPaged ? filteredDbData.slice((dbPage-1)*DB_PAGE_SIZE, dbPage*DB_PAGE_SIZE) : filteredDbData;
 
   const NAV_ITEMS = [
   {id:"dashboard" as Tab, label:"Dashboard",    desc:"실시간 현황",    icon:"📊"},
@@ -1436,7 +1432,7 @@ useEffect(()=>{
               <div style={S.tableWrap}>
                 <div style={S.tableHeader}>
                   <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>EQP_STATE — 장비 상태 이벤트</span>
-                  <span style={{fontSize:11,color:"#9ca3af"}}>총 3,042 rows</span>
+                  <span style={{fontSize:11,color:"#9ca3af"}}>총 {dbEqpTotal>0?dbEqpTotal.toLocaleString():"3,042"} rows</span>
                 </div>
                 <div style={{overflowX:"auto" as const}}>
                   <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"Pretendard, sans-serif"}}>
@@ -1444,7 +1440,7 @@ useEffect(()=>{
                       {["event_time","end_time","eqp_id","line","oper","lot_id","rcp_id","state"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",whiteSpace:"nowrap" as const}}>{h}</th>)}
                     </tr></thead>
                     <tbody>
-                      {filteredDbData.map((row,i)=>(
+                      {pagedDbData.map((row,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:row.eqp_state==="DOWN"?"#fef2f2":i%2===0?"#fff":"#fafafa"}}>
                           <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.event_time}</td>
                           <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#6b7280"}}>{row.end_time}</td>
@@ -1467,7 +1463,7 @@ useEffect(()=>{
               <div style={S.tableWrap}>
                 <div style={S.tableHeader}>
                   <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>LOT_STATE — LOT 처리 이력</span>
-                  <span style={{fontSize:11,color:"#9ca3af"}}>총 5,771 rows</span>
+                  <span style={{fontSize:11,color:"#9ca3af"}}>총 {dbLotTotal>0?dbLotTotal.toLocaleString():"5,771"} rows</span>
                 </div>
                 <div style={{overflowX:"auto" as const}}>
                   <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"Pretendard, sans-serif"}}>
@@ -1475,7 +1471,7 @@ useEffect(()=>{
                       {["event_time","lot_id","line","oper","eqp_id","rcp_id","lot_state","in_cnt","hold","scrap"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",whiteSpace:"nowrap" as const}}>{h}</th>)}
                     </tr></thead>
                     <tbody>
-                      {filteredDbData.map((row,i)=>(
+                      {pagedDbData.map((row,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:row.lot_state==="HOLD"?"#fef2f2":i%2===0?"#fff":"#fafafa"}}>
                           <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.event_time}</td>
                           <td style={{padding:"8px 12px",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.lot_id}</td>
