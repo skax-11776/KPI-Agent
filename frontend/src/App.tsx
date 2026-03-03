@@ -828,6 +828,26 @@ useEffect(()=>{
   }
 }, [dbTable]);
 
+// KPI_DAILY / SCENARIO_MAP / RCP_STATE 전체 데이터 fetch (탭 전환 시 1회)
+useEffect(()=>{
+  if (dbTable==="kpi_daily") {
+    fetch("/api/kpi-daily")
+      .then(r=>r.json())
+      .then(d=>{ if(d.success) setDbKpiData(d.data); })
+      .catch(()=>{});
+  } else if (dbTable==="scenario_map") {
+    fetch("/api/scenario-map")
+      .then(r=>r.json())
+      .then(d=>{ if(d.success) setDbScenarioData(d.data); })
+      .catch(()=>{});
+  } else if (dbTable==="rcp_state") {
+    fetch("/api/rcp-state")
+      .then(r=>r.json())
+      .then(d=>{ if(d.success) setDbRcpData(d.data); })
+      .catch(()=>{});
+  }
+}, [dbTable]);
+
   // LLM 전송
   const handleSend = useCallback(async()=>{
     if(!input.trim()||typing) return;
@@ -1256,11 +1276,11 @@ useEffect(()=>{
             {/* 테이블 탭 */}
             <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap" as const}}>
               {([
-                {id:"kpi_daily"    as DbTable,label:"KPI_DAILY",    rows:"144"},
-                {id:"scenario_map" as DbTable,label:"SCENARIO_MAP", rows:"12"},
-                {id:"rcp_state"    as DbTable,label:"RCP_STATE",    rows:"24"},
-                {id:"eqp_state"    as DbTable,label:"EQP_STATE",    rows:"3,042"},
-                {id:"lot_state"    as DbTable,label:"LOT_STATE",    rows:"5,771"},
+                {id:"kpi_daily"    as DbTable,label:"KPI_DAILY",    rows: dbKpiData.length>0      ? dbKpiData.length.toLocaleString()      : "144"},
+                {id:"scenario_map" as DbTable,label:"SCENARIO_MAP", rows: dbScenarioData.length>0 ? dbScenarioData.length.toLocaleString() : "12"},
+                {id:"rcp_state"    as DbTable,label:"RCP_STATE",    rows: dbRcpData.length>0      ? dbRcpData.length.toLocaleString()      : "24"},
+                {id:"eqp_state"    as DbTable,label:"EQP_STATE",    rows: dbEqpTotal>0            ? dbEqpTotal.toLocaleString()            : "3,042"},
+                {id:"lot_state"    as DbTable,label:"LOT_STATE",    rows: dbLotTotal>0            ? dbLotTotal.toLocaleString()            : "5,771"},
               ]).map(t=>(
                 <button key={t.id} style={{...S.filterBtn,...(dbTable===t.id?S.filterBtnOn:{})}} onClick={()=>{setDbTable(t.id);setDbFilterDate("all");setDbFilterEqp("all");setDbPage(1);}}>
                   {t.label}
@@ -1317,8 +1337,8 @@ useEffect(()=>{
             {dbTable==="kpi_daily"&&(
               <div style={S.tableWrap}>
                 <div style={S.tableHeader}>
-                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>KPI_DAILY — 알람 발생 행만 표시 (alarm_flag=1)</span>
-                  <span style={{fontSize:11,color:"#9ca3af"}}>총 144 rows · 12개 장비 × 12일</span>
+                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>KPI_DAILY — 전체 데이터</span>
+                  <span style={{fontSize:11,color:"#9ca3af"}}>총 {activeDbData.length} rows</span>
                 </div>
                 <div style={{overflowX:"auto" as const}}>
                   <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"Pretendard, sans-serif"}}>
