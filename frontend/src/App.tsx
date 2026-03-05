@@ -1027,6 +1027,20 @@ useEffect(()=>{
   useEffect(()=>{ chatEnd.current?.scrollIntoView({behavior:"smooth"}); },[msgs]);
 
 // Database 탭 - 테이블 전환 시 RDS에서 데이터 로드
+// 앱 시작 시 모든 DB 테이블 백그라운드 프리로드 (Carousel 프리뷰용)
+useEffect(()=>{
+  const init: [string, (r:any[], d:any)=>void][] = [
+    ["/api/rds/kpi-daily",    (r)=>setDbKpiData(r)],
+    ["/api/rds/scenario-map", (r)=>setDbScenarioData(r)],
+    ["/api/rds/rcp-state",    (r)=>setDbRcpData(r)],
+    ["/api/rds/eqp-state",    (r,d)=>{setDbEqpData(r);setDbEqpTotal(d.count||r.length);}],
+    ["/api/rds/lot-state",    (r,d)=>{setDbLotData(r);setDbLotTotal(d.count||r.length);}],
+  ];
+  init.forEach(([url,cb])=>{
+    fetch(url).then(r=>r.json()).then(d=>{if(d.success)cb(d.data||[],d);}).catch(()=>{});
+  });
+}, []);
+
 useEffect(()=>{
   setDbLoading(true);
   setDbError(null);
