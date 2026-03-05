@@ -130,8 +130,8 @@ def get_report_writer_prompt(
 """
 
 
-def get_question_answer_prompt(question: str, similar_reports: list) -> str:
-    
+def get_question_answer_prompt(question: str, similar_reports: list, live_context: str = "") -> str:
+
     # 참고 보고서 텍스트 구성 (출처 명확히)
     reports_text = ""
     for i, report in enumerate(similar_reports, 1):
@@ -143,23 +143,32 @@ def get_question_answer_prompt(question: str, similar_reports: list) -> str:
 
     reports_section = reports_text if reports_text else "※ 유사한 과거 보고서가 없습니다."
 
-    return f"""당신은 제조 라인 KPI 분석 전문가 AI입니다.
-과거 분석 보고서를 참고하되, 자유롭게 전문가 관점에서 답변하세요.
-보고서에 없는 내용도 KPI 지식을 바탕으로 답변할 수 있습니다.
+    # 실시간 현황 섹션 (프론트엔드에서 전달받은 경우만 포함)
+    live_section = ""
+    if live_context.strip():
+        live_section = f"""
+## 현재 모니터링 현황 (실시간 데이터)
+{live_context}
 
+"""
+
+    return f"""당신은 제조 라인 KPI 분석 전문가 AI입니다.
+현장 엔지니어가 읽기 쉬운 간결한 보고서 형식으로 답변하세요.
+{live_section}
 ## 사용자 질문
 {question}
 
 ## 참고 가능한 과거 보고서 (ChromaDB 검색 결과)
 {reports_section}
 
-## 답변 지침
-1. 질문에 직접적으로 답변하세요
-2. 과거 보고서를 참고했다면 "[날짜] [장비] 보고서 참고" 형식으로 출처를 명시하세요
-3. 보고서에 없는 내용은 전문가 지식으로 자유롭게 보완하세요
-4. 날씨, 주식 등 제조와 무관한 질문은 "저는 KPI 분석 전문가라 해당 질문은 답변이 어렵습니다" 라고만 짧게 답하세요. 절대 보고서 내용을 억지로 연결하지 마세요.
-5. 참고 보고서가 질문한 날짜와 정확히 일치한다면 그 내용을 상세히 설명하세요.   ← 이 줄 추가
-6. 답변은 명확하고 실용적으로 작성하세요
+## 작성 규칙
+- 마크다운 형식으로 작성하세요 (##헤더, -bullet, **bold**, 표 등 적극 활용).
+- 제공된 실시간 데이터의 수치를 직접 인용하여 근거를 제시하세요. "~탭에서 보면" 같은 탭 이름 언급 없이, 수치 자체로 말하세요.
+- 문장형 서술 금지. 수치 중심의 bullet 형식으로 작성하세요.
+- 현황 수치 → 이상 여부 → 원인/시사점 순으로 논리적으로 전개하세요.
+- 과거 보고서 인용 시 줄 끝에 `[날짜] [장비]` 형식으로 출처를 표시하세요.
+- 전체 15~20줄 이내로 충분히 작성하세요. "~판단됩니다" 같은 마무리 문장 없이 끝내세요.
+- 제조 무관 질문은 "KPI 분석 전문가라 답변이 어렵습니다" 한 줄만 작성하세요.
 
 ## 답변:
 """

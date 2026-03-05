@@ -1,13 +1,3 @@
-/**
- * RealtimeKpiMonitor.tsx
- * 실시간 KPI 모니터 컴포넌트
- *
- * [수정사항]
- * - 사이드바 이동 후 돌아왔을 때 차트가 흰색으로 보이는 문제 수정
- * - ResizeObserver로 컨테이너 크기 변화 감지 → SVG width 동적 업데이트
- * - containerRef로 실제 DOM 너비를 측정하여 차트 렌더링
- */
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // ─────────────────────────────────────────────
@@ -136,28 +126,6 @@ const RealtimeKpiMonitor: React.FC = () => {
   // ── ResizeObserver: 컨테이너 크기 변화 감지 ──
   // 사이드바 전환 후 돌아왔을 때도 정확한 너비를 가져옴
   useEffect(() => {
-<<<<<<< HEAD
-    const initialData: KpiData[] = [];
-    const now = new Date();
-    
-    for (let i = 29; i >= 0; i--) {
-      const time = new Date(now.getTime() - i * 2000);
-      initialData.push({
-        time: time.toLocaleTimeString('ko-KR'),
-        oee: 70 + Math.random() * 10,
-        thp: 215 + Math.random() * 20,
-        tat: 2.0 + Math.random() * 1.0,
-        wip: 240 + Math.random() * 20,
-      });
-    }
-    
-    setKpiData(initialData);
-    setCurrentKpi({
-      oee: initialData[29].oee,
-      thp: initialData[29].thp,
-      tat: initialData[29].tat,
-      wip: initialData[29].wip,
-=======
     const el = chartRef.current;
     if (!el) return;
 
@@ -166,7 +134,6 @@ const RealtimeKpiMonitor: React.FC = () => {
         const w = entry.contentRect.width;
         if (w > 0) setChartWidth(w);
       }
->>>>>>> main
     });
 
     observer.observe(el);
@@ -177,77 +144,23 @@ const RealtimeKpiMonitor: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
-<<<<<<< HEAD
-  // 실시간 데이터 업데이트 (500ms마다) - 기존 2000에서 변경
-useEffect(() => {
-  const interval = setInterval(() => {
-    setKpiData((prevData) => {
-      const newData = [...prevData];
-      const lastData = newData[newData.length - 1];
-      
-      // 새로운 데이터 포인트 생성 (이전 값 기준 랜덤 변동)
-      const newOee = Math.max(70, Math.min(82, lastData.oee + (Math.random() - 0.5) * 2));
-      const newThp = Math.max(215, Math.min(235, lastData.thp + (Math.random() - 0.5) * 5));
-      const newTat = Math.max(1.5, Math.min(3.0, lastData.tat + (Math.random() - 0.5) * 0.2));
-      const newWip = Math.max(240, Math.min(260, lastData.wip + (Math.random() - 0.5) * 4));
-      
-      const newPoint: KpiData = {
-        time: new Date().toLocaleTimeString('ko-KR'),
-        oee: newOee,
-        thp: newThp,
-        tat: newTat,
-        wip: newWip,
-      };
-      
-      // 트렌드 계산
-      setTrends({
-        oee: newOee - lastData.oee,
-        thp: newThp - lastData.thp,
-        tat: newTat - lastData.tat,
-        wip: newWip - lastData.wip,
-      });
-      
-      // 현재 KPI 업데이트
-      setCurrentKpi({
-        oee: newOee,
-        thp: newThp,
-        tat: newTat,
-        wip: newWip,
-      });
-      
-      // 최근 60개 데이터만 유지 (30초 분량)
-      newData.push(newPoint);
-      if (newData.length > 60) {
-        newData.shift();
-      }
-      
-      return newData;
-    });
-  }, 500); // 500ms = 0.5초마다 업데이트
-=======
   // ── 0.5초마다 KPI 업데이트 ──
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrent(prev => {
-        // 소폭 랜덤 변동 (실제 환경에서는 API 호출로 대체)
-        // OEE : 목표(70%) 위에서만 움직임 → 이상 없음
-        // THP : 목표(250) 근처에서 자주 넘나듦 → THP만 이상 발생
-        // TAT : 목표(3.5h) 아래에서만 움직임 → 이상 없음
-        // WIP : 정상 구간(230~270) 내에서만 움직임 → 이상 없음
         const next: KpiDataPoint = {
           time: Date.now(),
-          oee: Math.max(71, Math.min(82, prev.oee + (Math.random() - 0.5) * 0.6)),
-          thp: Math.max(235, Math.min(265, prev.thp + (Math.random() - 0.5) * 4)),
-          tat: Math.max(1.8, Math.min(3.2, prev.tat + (Math.random() - 0.5) * 0.02)),
-          wip: Math.max(200, Math.min(300, prev.wip + (Math.random() - 0.5) * 3)),
+          oee: Math.max(71, Math.min(82, prev.oee + (Math.random() - 0.5) * 0.3)),
+          thp: Math.max(235, Math.min(265, prev.thp + (Math.random() - 0.5) * 2)),
+          tat: Math.max(1.8, Math.min(3.2, prev.tat + (Math.random() - 0.5) * 0.01)),
+          wip: Math.max(200, Math.min(300, prev.wip + (Math.random() - 0.5) * 2)),
         };
->>>>>>> main
 
         // 히스토리에 추가 (최대 120개 유지)
         setHistory(h => [...h.slice(-119), next]);
         return next;
       });
-    }, 500);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);

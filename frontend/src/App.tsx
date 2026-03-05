@@ -7,6 +7,8 @@
 //   4. PDF 원본 내용 전문 표시
 // ================================================================
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import ContactModal from "./components/ContactModal";
+import ReactMarkdown from "react-markdown";
 
 // 타입
 interface Report {
@@ -134,48 +136,49 @@ function jitter(base:number,range:number):number { return parseFloat((base+(Math
 
 // ────────────────────────── LLM 시스템 프롬프트 ──────────────────────────
 const SYSTEM_PROMPT = `당신은 반도체/제조 공장의 KPI 모니터링 AI 에이전트입니다.
+현장 엔지니어에게 즉시 행동 가능한 간결한 보고서 형식으로 답변합니다.
 
-## 역할
-- 생산 KPI 데이터를 분석하고 근본 원인을 추론하는 전문가
-- 과거 알람 패턴을 기반으로 현재 문제를 진단
-- 구체적인 수치와 함께 실용적인 조치 방안 제시
-- 한국어로 명확하게 답변 (핵심 위주, 200자 이내 권장)
+## 필수 출력 형식 (반드시 준수)
+모든 답변은 아래 3섹션 구조로만 작성하세요. 섹션 외 추가 설명은 금지합니다.
+
+[현황] 장비·KPI·수치를 1~2문장으로 요약 (목표 vs 실적, 편차 포함)
+[원인] 핵심 원인 1~3개를 번호 목록으로 (각 항목 20자 이내)
+[조치] 즉시 실행 가능한 조치 1~3개를 번호 목록으로 (각 항목 20자 이내)
+
+## 출력 예시
+[현황] EQP12 THP 이상 · 목표 250 → 실적 227 (-9.2%) · 2026-01-31 09:10
+[원인] ① RCP23/RCP24 DOWN 4회 반복 (총 55분) ② 고복잡도 레시피 연속 처리
+[조치] ① EQP12 긴급 점검 요청 ② 레시피 복잡도 조정 ③ EQP11 대체 투입 검토
 
 ## 보유 데이터 (2026-01-20 ~ 2026-01-31)
-총 12건 알람:
-| 날짜 | 장비 | KPI | Target | Actual |
-|------|------|-----|--------|--------|
-| 2026-01-20 | EQP01 | OEE | 70% | 57.73% |
-| 2026-01-21 | EQP02 | THP | 1000UPH | 729UPH |
-| 2026-01-22 | EQP03 | TAT | 48h | 61.71h |
-| 2026-01-23 | EQP04 | WIP_EXCEED | 500EA | 670EA |
-| 2026-01-24 | EQP05 | WIP_SHORTAGE | 500EA | 218EA |
-| 2026-01-25 | EQP06 | OEE | 70% | 56.48% |
-| 2026-01-26 | EQP07 | THP | 1000UPH | 865UPH |
-| 2026-01-27 | EQP08 | TAT | 48h | 62.26h |
-| 2026-01-28 | EQP09 | WIP_EXCEED | 500EA | 730EA |
-| 2026-01-29 | EQP10 | WIP_SHORTAGE | 500EA | 295EA |
-| 2026-01-30 | EQP11 | OEE | 70% | 50.56% |
-| 2026-01-31 | EQP12 | THP | 250 | 227 (신규) |
+알람 12건 요약:
+| 날짜 | 장비 | KPI | Target | Actual | 주원인 |
+|------|------|-----|--------|--------|--------|
+| 2026-01-20 | EQP01 | OEE | 70% | 57.73% | 다운타임 3h, 고복잡도 레시피 |
+| 2026-01-21 | EQP02 | THP | 1000UPH | 729UPH | 자재공급 지연, 로더 통신장애 |
+| 2026-01-22 | EQP03 | TAT | 48h | 61.71h | 챔버 온도 불안정, 큐 적체 |
+| 2026-01-23 | EQP04 | WIP_EXCEED | 500EA | 670EA | 라인 밸런싱 불균형 |
+| 2026-01-24 | EQP05 | WIP_SHORTAGE | 500EA | 218EA | 라인 밸런싱 불균형 |
+| 2026-01-25 | EQP06 | OEE | 70% | 56.48% | 다운타임 3h, 레시피 HOLD |
+| 2026-01-26 | EQP07 | THP | 1000UPH | 865UPH | 자재공급 지연, 로더 장애 |
+| 2026-01-27 | EQP08 | TAT | 48h | 62.26h | 챔버 온도, QA 샘플링 증가 |
+| 2026-01-28 | EQP09 | WIP_EXCEED | 500EA | 730EA | 긴급 LOT 투입 |
+| 2026-01-29 | EQP10 | WIP_SHORTAGE | 500EA | 295EA | 설비 정지, 라인 불균형 |
+| 2026-01-30 | EQP11 | OEE | 70% | 50.56% | 다운타임 3h, RCP21/22 문제 |
+| 2026-01-31 | EQP12 | THP | 250 | 227 | DOWN 4회(55분), RCP23/24 고복잡도 |
 
-## 레시피 복잡도
-EQP12: RCP23(8), RCP24(10) — 고복잡도
-EQP11: RCP21(4), RCP22(10)
-EQP01: RCP01(9), RCP02(4)
-
-## EQP12 신규 알람 상세 (2026-01-31)
-- DOWN 이벤트 4회: 01:25~01:40, 03:35~03:50, 05:45~06:00, 07:55~08:10
-- 총 다운타임: 약 55분
-- 영향 LOT: LOT_02864~02867 (RCP23/RCP24 교번 처리 중 발생)
+## 현재 실시간 KPI 목표
+OEE ≥ 70% · THP ≥ 250 · TAT ≤ 3.5h · WIP 200~300EA
 
 ## 주의사항
-- 데이터에 없는 내용을 추측할 때는 명확히 "추정" 표시
-- 수치 비교 시 _t(목표) vs _v(실적) 구분 명확히`;
+- 데이터에 없는 내용 추측 시 반드시 "(추정)" 표시
+- 섹션 레이블 [현황] [원인] [조치] 는 반드시 유지
+- 불필요한 인사말, 마무리 문장 금지`;
 
 // ────────────────────────── Anthropic API 호출 ──────────────────────────
 // .env에 REACT_APP_ANTHROPIC_API_KEY=sk-ant-... 설정 필요
 // CORS 이슈 시: 백엔드 FastAPI /api/chat 경유 (main.py 실행 후 사용)
-async function callLLM(messages:{role:string;content:string}[]):Promise<{text:string;source:"llm"|"rag"|"error"}> {
+async function callLLM(messages:{role:string;content:string}[], liveContext:string=""):Promise<{text:string;source:"llm"|"rag"|"error"}> {
   // 백엔드 FastAPI 서버 경유 (AWS Bedrock 사용)
   // 백엔드: backend/api/main.py 실행 필요
   try {
@@ -186,6 +189,7 @@ async function callLLM(messages:{role:string;content:string}[]):Promise<{text:st
         messages: messages,
         system: SYSTEM_PROMPT,
         mode: "question",
+        live_context: liveContext,
       }),
     });
     if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
@@ -231,16 +235,16 @@ function RealtimeChart({data,width,height}:{data:RealtimePoint[];width:number;he
   return(
     <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{overflow:"visible"}}>
       <g transform={`translate(${P.left},${P.top})`}>
-        {[40,55,70,85,100].map(v=><line key={v} x1={0} y1={yS(v,40,100)} x2={W} y2={yS(v,40,100)} stroke="#f3f4f6" strokeWidth={1}/>)}
+        {[50,62,74,86,100].map(v=><line key={v} x1={0} y1={yS(v,50,100)} x2={W} y2={yS(v,50,100)} stroke="#f3f4f6" strokeWidth={1}/>)}
         <path d={mk(p=>p.wip,150,350)} fill="none" stroke="#8b5cf6" strokeWidth={1.5} opacity={0.6}/>
         <path d={mk(p=>p.tat,0,6)} fill="none" stroke="#f59e0b" strokeWidth={1.5} opacity={0.6}/>
         <path d={mk(p=>p.thp,150,300)} fill="none" stroke="#10b981" strokeWidth={2}/>
-        <path d={mk(p=>p.oee,40,100)} fill="none" stroke="#2563eb" strokeWidth={2.5}/>
-        <line x1={0} y1={yS(70,40,100)} x2={W} y2={yS(70,40,100)} stroke="#2563eb" strokeWidth={1} strokeDasharray="4 3" opacity={0.35}/>
-        <text x={W+3} y={yS(70,40,100)+4} fontSize={9} fill="#2563eb" opacity={0.5}>70%</text>
-        {xl.map(i=>data[i]&&<text key={i} x={xS(i)} y={H+18} textAnchor="middle" fontSize={10} fill="#9ca3af">{data[i].time.slice(0,8)}</text>)}
-        {[40,55,70,85,100].map(v=><text key={v} x={-4} y={yS(v,40,100)+4} textAnchor="end" fontSize={10} fill="#9ca3af">{v}</text>)}
-        {(()=>{const l=data[data.length-1];const lx=xS(data.length-1);return<><circle cx={lx} cy={yS(l.oee,40,100)} r={4} fill="#2563eb"/><circle cx={lx} cy={yS(l.thp,150,300)} r={3} fill="#10b981"/></>;})()}
+        <path d={mk(p=>p.oee,50,100)} fill="none" stroke="#2563eb" strokeWidth={2.5}/>
+        <line x1={0} y1={yS(70,50,100)} x2={W} y2={yS(70,50,100)} stroke="#2563eb" strokeWidth={1} strokeDasharray="4 3" opacity={0.35}/>
+        <text x={W+3} y={yS(70,50,100)+4} fontSize={9} fill="#2563eb" opacity={0.5}>70%</text>
+        {xl.map(i=>data[i]&&<text key={i} x={xS(i)} y={H+18} textAnchor="middle" fontSize={10} fill="#9ca3af">{data[i].time.slice(0,5)}</text>)}
+        {[50,62,74,86,100].map(v=><text key={v} x={-4} y={yS(v,50,100)+4} textAnchor="end" fontSize={10} fill="#9ca3af">{v}</text>)}
+        {(()=>{const l=data[data.length-1];const lx=xS(data.length-1);return<><circle cx={lx} cy={yS(l.oee,50,100)} r={4} fill="#2563eb"/><circle cx={lx} cy={yS(l.thp,150,300)} r={3} fill="#10b981"/></>;})()}
       </g>
     </svg>
   );
@@ -265,9 +269,9 @@ function SL({children,style}:{children:React.ReactNode;style?:React.CSSPropertie
 }
 
 // 리포트 상세 패널 (PDF 원본 보기 포함)
-function ReportPanel({report,onClose}:{report:Report;onClose:()=>void}) {
+function ReportPanel({report,onClose,startRaw=false}:{report:Report;onClose:()=>void;startRaw?:boolean}) {
   const meta=KPI_META[report.alarm_kpi], bad=isBad(report), rate=getRate(report);
-  const [raw,setRaw]=useState(false);
+  const [raw,setRaw]=useState(startRaw);
   return(
     <div style={S.overlay} onClick={onClose}>
       <div style={S.panel} onClick={e=>e.stopPropagation()}>
@@ -296,18 +300,24 @@ function ReportPanel({report,onClose}:{report:Report;onClose:()=>void}) {
         {raw?(
           <div style={{background:"#0f172a",borderRadius:10,padding:20,marginBottom:16,fontFamily:"Pretendard, sans-serif",fontSize:12}}>
             <div style={{color:"#60a5fa",fontSize:11,letterSpacing:1,marginBottom:14}}>── KPI 알람 분석 보고서 (PDF 원본) ──</div>
-            {([
-              {label:"## 기본 정보",text:report.pdf_raw.basic_info},
-              {label:"## 문제 정의",text:report.pdf_raw.problem},
-              {label:"## 근본 원인",text:report.pdf_raw.root_cause},
-              {label:"## 해결 시나리오",text:report.pdf_raw.scenario},
-              {label:"## 조치 결과",text:report.pdf_raw.result},
-            ]).map((s,i)=>(
-              <div key={i} style={{marginBottom:14}}>
-                <div style={{color:"#60a5fa",fontWeight:600,marginBottom:5}}>{s.label}</div>
-                <div style={{color:"#e2e8f0",lineHeight:1.7,whiteSpace:"pre-line"}}>{s.text}</div>
-              </div>
-            ))}
+            <ReactMarkdown components={{
+              p:      ({children})=><p style={{color:"#e2e8f0",lineHeight:1.7,margin:"3px 0"}}>{children}</p>,
+              ul:     ({children})=><ul style={{color:"#e2e8f0",paddingLeft:18,margin:"4px 0"}}>{children}</ul>,
+              ol:     ({children})=><ol style={{color:"#e2e8f0",paddingLeft:18,margin:"4px 0"}}>{children}</ol>,
+              li:     ({children})=><li style={{color:"#e2e8f0",lineHeight:1.7,margin:"2px 0"}}>{children}</li>,
+              strong: ({children})=><strong style={{color:"#fbbf24",fontWeight:700}}>{children}</strong>,
+              h1:     ({children})=><div style={{color:"#60a5fa",fontWeight:700,fontSize:14,margin:"14px 0 4px",borderBottom:"1px solid #1e3a5f",paddingBottom:4}}>{children}</div>,
+              h2:     ({children})=><div style={{color:"#60a5fa",fontWeight:700,fontSize:13,margin:"12px 0 4px",borderBottom:"1px solid #1e3a5f",paddingBottom:3}}>{children}</div>,
+              h3:     ({children})=><div style={{color:"#93c5fd",fontWeight:600,fontSize:12,margin:"8px 0 3px"}}>{children}</div>,
+              code:   ({children})=><code style={{background:"#1e293b",color:"#7dd3fc",padding:"1px 5px",borderRadius:3,fontFamily:"monospace"}}>{children}</code>,
+              hr:     ()=><hr style={{border:"none",borderTop:"1px solid #334155",margin:"8px 0"}}/>,
+            }}>{[
+              `## 기본 정보\n${report.pdf_raw.basic_info}`,
+              `## 문제 정의\n${report.pdf_raw.problem}`,
+              `## 근본 원인\n${report.pdf_raw.root_cause}`,
+              `## 해결 시나리오\n${report.pdf_raw.scenario}`,
+              `## 조치 결과\n${report.pdf_raw.result}`,
+            ].join('\n\n')}</ReactMarkdown>
           </div>
         ):(
           <>
@@ -607,11 +617,12 @@ export default function App() {
   type DbTable = "kpi_daily"|"scenario_map"|"rcp_state"|"eqp_state"|"lot_state";
   type AlarmSub = "latest"|"history";
 
-  const [activeTab, setActiveTab]     = useState<Tab>("dashboard");
+  const [activeTab, setActiveTab]     = useState<Tab>("chat");
   const [alarmSub,  setAlarmSub]      = useState<AlarmSub>("latest");
   const [thresholds, setThresholds]   = useState<Thresholds>({oee_min:70,thp_min:250,tat_max:3.5,wip_min:200,wip_max:300});
   const [dbTable,   setDbTable]       = useState<DbTable>("kpi_daily");
   const [selReport, setSelReport]     = useState<Report|null>(null);
+  const [selReportRaw, setSelReportRaw] = useState(false);
   const [latestSaved, setLatestSaved] = useState(false);
   const [latestAlarmCount, setLatestAlarmCount] = useState(1);
   const [showPdfModal, setShowPdfModal] = useState(false);
@@ -632,6 +643,7 @@ export default function App() {
   const [dbLotTotal,   setDbLotTotal]   = useState<number>(0);
   const [dbLoading,    setDbLoading]    = useState<boolean>(false);
   const [dbError,      setDbError]      = useState<string|null>(null);
+  const [showContactModal, setShowContactModal] = useState(false);
 
 // PDF 목록 로드 (컴포넌트 마운트 시 + 저장/삭제 후)
 useEffect(()=>{
@@ -664,20 +676,31 @@ useEffect(()=>{
   const chatEnd = useRef<HTMLDivElement>(null);
 
   // 실시간 KPI
-  const [kpi, setKpi] = useState<LiveKPI>({oee:70,thp:229,tat:2.47,wip:256,oee_prev:70,thp_prev:231,tat_prev:2.45,wip_prev:255});
+  const [kpi, setKpi] = useState<LiveKPI>({oee:76,thp:258,tat:2.47,wip:252,oee_prev:75,thp_prev:260,tat_prev:2.45,wip_prev:250});
   const [rt,  setRt]  = useState<RealtimePoint[]>([]);
   const chartRef = useRef<HTMLDivElement>(null);
   const [chartW, setChartW] = useState(900);
 
   useEffect(()=>{
-    setRt(Array.from({length:60},()=>({time:nowTime(),oee:jitter(74,8),thp:Math.round(jitter(235,20)),tat:jitter(2.5,0.5),wip:Math.round(jitter(250,20))})));
+    const now=new Date();
+    setRt(Array.from({length:30},(_,i)=>{
+      const t=new Date(now.getTime()-(29-i)*5000);
+      const ts=t.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+      return{time:ts,oee:parseFloat(Math.max(71,Math.min(82,74+(Math.random()-0.5)*2)).toFixed(2)),thp:Math.round(Math.max(245,Math.min(275,260+(Math.random()-0.5)*6))),tat:parseFloat(Math.max(1.8,Math.min(3.2,2.5+(Math.random()-0.5)*0.1)).toFixed(2)),wip:Math.round(Math.max(220,Math.min(280,250+(Math.random()-0.5)*6)))};
+    }));
   },[]);
 
   useEffect(()=>{
     const iv=setInterval(()=>{
-      setKpi(p=>{const o=jitter(74,8),t=Math.round(jitter(p.thp,4)),ta=jitter(p.tat,0.08),w=Math.round(jitter(p.wip,6));return{oee:o,thp:t,tat:ta,wip:w,oee_prev:p.oee,thp_prev:p.thp,tat_prev:p.tat,wip_prev:p.wip};});
-      setRt(p=>[...p.slice(-59),{time:nowTime(),oee:jitter(74,8),thp:Math.round(jitter(235,20)),tat:jitter(2.5,0.5),wip:Math.round(jitter(250,20))}]);
-    },500);
+      setKpi(p=>{
+        const o=parseFloat(Math.max(71,Math.min(82,p.oee+(Math.random()-0.5)*2)).toFixed(2));
+        const t=Math.round(Math.max(245,Math.min(275,p.thp+(Math.random()-0.5)*3)));
+        const ta=parseFloat(Math.max(1.8,Math.min(3.2,p.tat+(Math.random()-0.5)*0.04)).toFixed(2));
+        const w=Math.round(Math.max(220,Math.min(280,p.wip+(Math.random()-0.5)*4)));
+        return{oee:o,thp:t,tat:ta,wip:w,oee_prev:p.oee,thp_prev:p.thp,tat_prev:p.tat,wip_prev:p.wip};
+      });
+      setRt(p=>[...p.slice(-29),{time:nowTime(),oee:parseFloat(Math.max(71,Math.min(82,74+(Math.random()-0.5)*2)).toFixed(2)),thp:Math.round(Math.max(245,Math.min(275,260+(Math.random()-0.5)*6))),tat:parseFloat(Math.max(1.8,Math.min(3.2,2.5+(Math.random()-0.5)*0.1)).toFixed(2)),wip:Math.round(Math.max(220,Math.min(280,250+(Math.random()-0.5)*6)))}]);
+    },5000);
     return()=>clearInterval(iv);
   },[]);
 
@@ -737,13 +760,50 @@ useEffect(()=>{
     setTyping(true);
     setHistory(newH);
     try{
-      const {text,source}=await callLLM(newH);
+      // 현재 탭 데이터를 컨텍스트로 빌드
+      const liveContext = [
+        // ── Dashboard ──
+        `## Dashboard (실시간 KPI)`,
+        `- OEE: ${kpi.oee.toFixed(1)}% (목표: ${thresholds.oee_min}%)`,
+        `- THP: ${kpi.thp}개 (목표: ${thresholds.thp_min}개)`,
+        `- TAT: ${kpi.tat.toFixed(2)}h (목표: ${thresholds.tat_max}h)`,
+        `- WIP: ${kpi.wip}개 (목표 범위: ${thresholds.wip_min}~${thresholds.wip_max}개)`,
+        ``,
+        // ── Analytics (RDS 최신 일별 데이터) ──
+        ...(dashboardSummary ? [
+          `## Analytics (RDS 최신 KPI 일별)`,
+          `- 기준일: ${dashboardSummary.date} | 장비: ${dashboardSummary.eqp_id} | 라인: ${dashboardSummary.line_id} | 공정: ${dashboardSummary.oper_id}`,
+          `- OEE ${dashboardSummary.oee_v}% / 목표 ${dashboardSummary.oee_t}% | THP ${dashboardSummary.thp_v}개 / 목표 ${dashboardSummary.thp_t}개`,
+          `- TAT ${dashboardSummary.tat_v}h / 목표 ${dashboardSummary.tat_t}h | WIP ${dashboardSummary.wip_v}개 / 목표 ${dashboardSummary.wip_t}개`,
+          ``,
+        ] : []),
+        // ── Alarm Center ──
+        `## Alarm Center (최신 알람)`,
+        `- 일시: ${LATEST_ALARM.date} ${LATEST_ALARM.time} | 장비: ${LATEST_ALARM.eqp_id} | ${LATEST_ALARM.line_id} | ${LATEST_ALARM.oper_id}`,
+        `- 알람 KPI: ${LATEST_ALARM.alarm_kpi} (목표 ${LATEST_ALARM.thp_t}개 → 실적 ${LATEST_ALARM.thp_v}개)`,
+        `- 주요 원인: ${LATEST_ALARM.causes.slice(0,2).join(' / ')}`,
+        ``,
+        `## Alarm Center (과거 이력 ${historyList.length}건)`,
+        ...historyList.slice(0,8).map(r=>`- ${r.date} ${r.eqp_id} ${r.alarm_kpi}: 목표 ${r.target_raw} → 실적 ${r.actual_raw} | 원인: ${r.causes[0]}`),
+        ``,
+        // ── Database ──
+        `## Database (RDS 로드 현황)`,
+        `- KPI_DAILY: ${dbKpiData.length}건${dbKpiData.length>0 ? ` | 최신: ${dbKpiData[0]?.date} ${dbKpiData[0]?.eqp_id}` : ''}`,
+        `- EQP_STATE: ${dbEqpData.length}건${dbEqpData.length>0 ? ` | 최신: ${dbEqpData[0]?.date} ${dbEqpData[0]?.eqp_id} ${dbEqpData[0]?.state}` : ''}`,
+        `- LOT_STATE: ${dbLotData.length}건${dbLotData.length>0 ? ` | 최신: ${dbLotData[0]?.date} ${dbLotData[0]?.lot_id}` : ''}`,
+        `- RCP_STATE: ${dbRcpData.length}건${dbRcpData.length>0 ? ` | 최신: ${dbRcpData[0]?.rcp_id} 복잡도 ${dbRcpData[0]?.complexity}` : ''}`,
+        ``,
+        // ── Settings ──
+        `## Settings (알람 임계값)`,
+        `- OEE 하한: ${thresholds.oee_min}% | THP 하한: ${thresholds.thp_min}개 | TAT 상한: ${thresholds.tat_max}h | WIP 범위: ${thresholds.wip_min}~${thresholds.wip_max}개`,
+      ].join('\n');
+      const {text,source}=await callLLM(newH, liveContext);
       setHistory(h=>[...h,{role:"assistant",content:text}]);
       setMsgs(p=>[...p,{role:"assistant",content:text,timestamp:nowTime(),source}]);
     }catch(e){
       setMsgs(p=>[...p,{role:"assistant",content:"오류가 발생했습니다. 잠시 후 다시 시도해주세요.",timestamp:nowTime(),source:"error"}]);
     }finally{ setTyping(false); }
-  },[input,history,typing]);
+  },[input,history,typing,kpi,thresholds,historyList,dashboardSummary,dbKpiData,dbEqpData,dbLotData,dbRcpData]);
 
   const delta=(cur:number,prev:number,inv=false)=>{
     const up=cur>prev; const good=inv?!up:up;
@@ -780,9 +840,9 @@ useEffect(()=>{
   const pagedDbData  = isPaged ? filteredDbData.slice((dbPage-1)*DB_PAGE_SIZE, dbPage*DB_PAGE_SIZE) : filteredDbData;
 
   const NAV_ITEMS = [
+  {id:"chat"      as Tab, label:"AI Assistant", desc:"LLM + RAG",     icon:"🤖"},
   {id:"dashboard" as Tab, label:"Dashboard",    desc:"실시간 현황",    icon:"📊"},
   {id:"alarms"    as Tab, label:"Alarm Center", desc:"최신·과거 알람", icon:"🔔"},
-  {id:"chat"      as Tab, label:"AI Assistant", desc:"LLM + RAG",     icon:"🤖"},
   {id:"analytics" as Tab, label:"Analytics",    desc:"KPI 트렌드 분석",icon:"📈"},
   {id:"database"  as Tab, label:"Database",     desc:"원본 데이터",    icon:"🗄️"},
   {id:"settings"  as Tab, label:"Settings",     desc:"알람 설정",      icon:"⚙️"},
@@ -790,6 +850,8 @@ useEffect(()=>{
 
   return(
     <div style={S.root}>
+      {/* ── 담당자 연결 모달 ── */}
+      <ContactModal open={showContactModal} onClose={()=>setShowContactModal(false)}/>
       {/* ── SIDEBAR ── */}
       <aside style={S.sidebar}>
         <div style={S.logo}>
@@ -867,6 +929,16 @@ useEffect(()=>{
     ))}
     <div style={S.dateChip}>{new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false})}</div>
     <div style={S.alarmChip}>🔴 신규 알람 1건</div>
+    <button
+      onClick={()=>setShowContactModal(true)}
+      style={{
+        padding:"6px 14px", borderRadius:8, border:"1px solid #3b82f6",
+        background:"#eff6ff", color:"#1d4ed8", fontWeight:700, fontSize:12,
+        cursor:"pointer", display:"flex", alignItems:"center", gap:5, whiteSpace:"nowrap",
+      }}
+    >
+      담당자 연결
+    </button>
   </div>
         </header>
 
@@ -955,7 +1027,7 @@ useEffect(()=>{
                     <div style={{fontSize:20,fontWeight:700,color:"#0f172a"}}>EQP12 — Throughput 알람</div>
                     <div style={{fontSize:12,color:"#9ca3af",marginTop:4,fontFamily:"Pretendard, sans-serif"}}>2026-01-31 09:10 · LINE2 · OPER4 · RCP23 / RCP24</div>
                   </div>
-                  <span style={{...S.badge,background:"#d1fae5",color:"#065f46",fontSize:13,padding:"5px 12px"}}>THP · 신규</span>
+                  <span style={{...S.badge,background:"#d1fae5",color:"#065f46",alignSelf:"flex-start"}}>THP · 신규</span>
                 </div>
                 {/* KPI 4개 */}
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
@@ -1014,7 +1086,7 @@ useEffect(()=>{
                   >
                     PDF 보고서 생성
                   </button>
-                  {latestSaved&&<span style={{color:"#16a34a",fontWeight:600,fontSize:13}}>✅ RAG에 저장됨</span>}
+                  {latestSaved&&<span style={{color:"#16a34a",fontWeight:600,fontSize:13}}>RAG에 저장됨</span>}
                   <button
                     style={{padding:"6px 12px",borderRadius:6,border:"1px solid #d1d5db",background:"#fff",color:"#6b7280",fontWeight:600,fontSize:13,cursor:"pointer"}}
                     onClick={async ()=>{
@@ -1045,7 +1117,7 @@ useEffect(()=>{
                   {historyList.map((r,i)=>{
                     const meta=KPI_META[r.alarm_kpi]; const bad=isBad(r);
                     return(
-                      <div key={i} style={{...S.card,borderLeft:`4px solid ${meta.color}`,cursor:"pointer"}} onClick={()=>setSelReport(r)}>
+                      <div key={i} style={{...S.card,borderLeft:`4px solid ${meta.color}`,cursor:"pointer"}} onClick={()=>{setSelReportRaw(false);setSelReport(r);}}>
                         <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                           <span style={{fontSize:15,fontWeight:700,fontFamily:"Pretendard, sans-serif"}}>{r.eqp_id}</span>
                           <span style={{...S.badge,background:meta.bg,color:meta.textColor}}>{meta.label}</span>
@@ -1059,7 +1131,7 @@ useEffect(()=>{
                         <AchievementBar report={r}/>
                         <div style={{fontSize:12,color:"#6b7280",marginTop:8,lineHeight:1.5}}>{r.causes[0]}</div>
                         <div style={{marginTop:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                          <span style={{fontSize:10,color:"#7c3aed",background:"#ede9fe",padding:"2px 7px",borderRadius:4,fontWeight:600}}>PDF 원본 보기 →</span>
+                          <span style={{fontSize:10,color:"#7c3aed",background:"#ede9fe",padding:"2px 7px",borderRadius:4,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();setSelReportRaw(true);setSelReport(r);}}>PDF 원본 보기 →</span>
                           <span style={{fontSize:10,color:"#9ca3af",fontFamily:"Pretendard, sans-serif"}}>{r.filename.replace("report_","").replace(".pdf","")}</span>
                         </div>
                       </div>
@@ -1106,8 +1178,24 @@ useEffect(()=>{
                       <div style={{width:30,height:30,borderRadius:8,background:"#0f172a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,flexShrink:0,fontFamily:"Pretendard, sans-serif"}}>AI</div>
                     )}
                     <div style={{maxWidth:"72%"}}>
-                      <div style={m.role==="user"?S.userBubble:S.aiBubble}>
-                        {m.content.split("\n").map((l,j,a)=><React.Fragment key={j}>{l}{j<a.length-1&&<br/>}</React.Fragment>)}
+                      <div style={m.role==="user"?S.userBubble:{...S.aiBubble, lineHeight:1.7}}>
+                        {m.role==="user"
+                          ? m.content.split("\n").map((l,j,a)=><React.Fragment key={j}>{l}{j<a.length-1&&<br/>}</React.Fragment>)
+                          : <ReactMarkdown
+                              components={{
+                                p:  ({children})=><p style={{margin:"2px 0"}}>{children}</p>,
+                                ul: ({children})=><ul style={{margin:"4px 0",paddingLeft:18}}>{children}</ul>,
+                                ol: ({children})=><ol style={{margin:"4px 0",paddingLeft:18}}>{children}</ol>,
+                                li: ({children})=><li style={{margin:"2px 0"}}>{children}</li>,
+                                strong: ({children})=><strong style={{fontWeight:700}}>{children}</strong>,
+                                h1: ({children})=><div style={{fontWeight:700,fontSize:14,margin:"6px 0 2px"}}>{children}</div>,
+                                h2: ({children})=><div style={{fontWeight:700,fontSize:13,margin:"6px 0 2px"}}>{children}</div>,
+                                h3: ({children})=><div style={{fontWeight:600,fontSize:12,margin:"4px 0 2px"}}>{children}</div>,
+                                code: ({children})=><code style={{background:"#f1f5f9",padding:"1px 4px",borderRadius:3,fontSize:11,fontFamily:"monospace"}}>{children}</code>,
+                                hr: ()=><hr style={{border:"none",borderTop:"1px solid #e2e8f0",margin:"6px 0"}}/>,
+                              }}
+                            >{m.content}</ReactMarkdown>
+                        }
                       </div>
                       <div style={{display:"flex",gap:6,marginTop:3,justifyContent:m.role==="user"?"flex-end":"flex-start",alignItems:"center"}}>
                         <span style={{fontSize:10,color:"#9ca3af"}}>{m.timestamp}</span>
@@ -1133,7 +1221,7 @@ useEffect(()=>{
               
               {/* 빠른 질문 */}
               <div style={{padding:"0 28px 10px",display:"flex",gap:7,flexWrap:"wrap" as const}}>
-                {["EQP12 최신 알람 원인은?","OEE 알람 패턴 분석해줘","어떤 장비가 가장 위험해?","WIP 알람 전체 현황은?","TAT 개선 방안 제시해줘"].map((s,i)=>(
+                {["지금 라인 상태 어때?","지금 현황 알려줘.","알람 많이 난 장비 어디야?","THP 왜 이래?","이번 달 OEE 최악은?"].map((s,i)=>(
                   <button key={i} style={S.chip} onClick={()=>setInput(s)}>{s}</button>
                 ))}
               </div>
@@ -1420,7 +1508,7 @@ ${LATEST_ALARM.scenarios.map((s,i)=>`${i+1}. ${s}`).join("\n")}
           onClick={()=>{setShowPdfModal(false);setShowRagModal(true);}}
           disabled={latestSaved}
           style={{padding:"9px 20px",borderRadius:8,border:"none",background:latestSaved?"#9ca3af":"#22c55e",color:"#fff",fontWeight:700,cursor:latestSaved?"not-allowed":"pointer"}}
-        >{latestSaved?"이미 저장됨":"💾 RAG 저장"}</button>
+        >{latestSaved?"이미 저장됨":"RAG 저장"}</button>
       </div>
     </div>
   </div>
@@ -1463,7 +1551,7 @@ ${LATEST_ALARM.scenarios.map((s,i)=>`${i+1}. ${s}`).join("\n")}`;
             setTimeout(()=>setShowSavedToast(false),2500);
           }}
           style={{flex:1,padding:"11px",borderRadius:8,border:"none",background:"#2563eb",color:"#fff",fontWeight:700,cursor:"pointer"}}
-        >✅ 저장</button>
+        >저장</button>
       </div>
     </div>
   </div>
@@ -1472,14 +1560,14 @@ ${LATEST_ALARM.scenarios.map((s,i)=>`${i+1}. ${s}`).join("\n")}`;
 {/* 저장 완료 토스트 */}
 {showSavedToast&&(
   <div style={{position:"fixed",bottom:28,right:28,background:"#0f172a",color:"#fff",padding:"14px 20px",borderRadius:10,fontSize:13,fontWeight:600,zIndex:999,display:"flex",gap:8,alignItems:"center",boxShadow:"0 8px 24px rgba(0,0,0,0.3)"}}>
-    ✅ RAG 저장 완료! 과거이력에 추가되었습니다.
+    RAG 저장 완료! 과거이력에 추가되었습니다.
   </div>
 )}
 {activeTab==="analytics"&&<AnalyticsPage reports={historyList}/>}
         {activeTab==="settings"&&<SettingsPage thresholds={thresholds} setThresholds={setThresholds}/>}
       </main>
 
-      {selReport&&<ReportPanel report={selReport} onClose={()=>setSelReport(null)}/>}
+      {selReport&&<ReportPanel report={selReport} onClose={()=>setSelReport(null)} startRaw={selReportRaw}/>}
 
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}

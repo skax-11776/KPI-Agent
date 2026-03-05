@@ -69,6 +69,9 @@ class AgentState(TypedDict, total=False):
     # ========== 질문 관련 ==========
     question_text: Optional[str]
     """정제된 질문 텍스트"""
+
+    live_context: Optional[str]
+    """프론트엔드에서 전달받은 실시간 탭 현황 데이터 (Dashboard KPI, 알람 이력 등)"""
     
     final_answer: Optional[str]
     """질문에 대한 최종 답변 (LLM 생성)"""

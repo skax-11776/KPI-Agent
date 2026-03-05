@@ -7,38 +7,23 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from backend.config.chroma_config import chroma_config
+
+
 def node_4_report_lookup(state: dict) -> dict:
-    
+
     print("\n" + "=" * 60)
-<<<<<<< HEAD
-    print("- [Node 4] Report Lookup 실행")
-=======
     print("[Node 4] Report Lookup 실행")
->>>>>>> main
     print("=" * 60)
 
     question = state.get('input_data', '')
     if not question:
-<<<<<<< HEAD
-        print("- 질문이 없습니다")
-        return {
-            'report_exists': False,
-            'question_text': ''
-        }
-    
-    print(f"- 사용자 질문: {question}\n")
-    
-    # 2. ChromaDB에서 유사 리포트 검색
-    print("- ChromaDB에서 관련 리포트 검색 중...")
-=======
         return {'report_exists': False, 'question_text': ''}
 
     print(f"사용자 질문: {question}\n")
 
     # ── 1. 날짜 추출 시도 ──────────────────────────────
     date_str = _extract_date(question)
->>>>>>> main
-    
+
     if date_str:
         print(f"날짜 감지: {date_str} → 메타데이터 직접 검색")
         result = chroma_config.get_report_by_date(date_str)
@@ -62,29 +47,6 @@ def node_4_report_lookup(state: dict) -> dict:
 
         similar_reports = []
         if results and len(results) > 0:
-<<<<<<< HEAD
-            # 유사도 확인 (거리가 낮을수록 유사)
-            # 거리 < 1.5 정도면 관련 있다고 판단
-            distance = results[0]['distance']
-            
-            print(f"   - 관련 리포트 발견")
-            print(f"   - 유사도 거리: {distance:.4f}")
-            print(f"   - 리포트 ID: {results[0]['id']}")
-            
-            # 유사도 임계값 확인
-            if distance < 1.5:
-                report_exists = True
-                print(f"   - 관련성 높음 (거리 < 1.5)")
-            else:
-                report_exists = False
-                print(f"   - 관련성 낮음 (거리 >= 1.5)")
-        else:
-            report_exists = False
-            print(f"   - 관련 리포트 없음")
-    
-    except Exception as e:
-        print(f"   - 검색 실패: {e}")
-=======
             for r in results:
                 distance = r['distance']
                 print(f"   리포트 ID: {r['id']} | 유사도 거리: {distance:.4f}")
@@ -102,7 +64,6 @@ def node_4_report_lookup(state: dict) -> dict:
 
     except Exception as e:
         print(f"   [ERROR] 검색 실패: {e}")
->>>>>>> main
         report_exists = False
         similar_reports = []
 

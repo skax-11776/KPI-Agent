@@ -186,50 +186,55 @@ def run_alarm_analysis(alarm_date: str = None, alarm_eqp_id: str = None, alarm_k
     return final_state
 
 
-def run_question_answer(question: str) -> AgentState:
+def run_question_answer(question: str, live_context: str = "") -> AgentState:
     """
     질문 답변 워크플로우를 실행합니다.
-    
-    동일한 질문에 대해 캐싱을 사용합니다.
-    
+
+    live_context가 있으면 캐시를 사용하지 않습니다 (실시간 데이터 반영).
+
     Args:
         question: 사용자 질문
-    
+        live_context: 프론트엔드 탭 현황 데이터 (실시간 KPI, 알람 이력 등)
+
     Returns:
         AgentState: 최종 State
     """
-    
+
     print("\n" + "=" * 60)
     print("질문 답변 워크플로우 시작")
     print("=" * 60 + "\n")
-    
-    # 1. 캐시 키 생성 (질문의 해시값 사용)
+
+    # 1. 캐시 키 생성 (live_context가 있으면 캐싱 안 함)
     import hashlib
-    question_hash = hashlib.md5(question.lower().strip().encode()).hexdigest()
-    cache_key = qa_cache.generate_key('question', question_hash)
-    
+    cache_key = None
+    if not live_context:
+        question_hash = hashlib.md5(question.lower().strip().encode()).hexdigest()
+        cache_key = qa_cache.generate_key('question', question_hash)
+
     # 2. 캐시 확인
-    cached_result = qa_cache.get(cache_key)
-    if cached_result:
-        print("캐시된 답변 사용 (LLM 호출 생략)")
-        print("=" * 60 + "\n")
-        return cached_result
-    
+    if cache_key:
+        cached_result = qa_cache.get(cache_key)
+        if cached_result:
+            print("캐시된 답변 사용 (LLM 호출 생략)")
+            print("=" * 60 + "\n")
+            return cached_result
+
     # 3. 초기 State
     initial_state = {
         'input_type': 'question',
         'input_data': question,
+        'live_context': live_context,
         'metadata': {'llm_calls': 0}
     }
-    
+
     # 4. 워크플로우 실행
     app = get_workflow_app()
     final_state = app.invoke(initial_state)
-    
-    # 5. 결과 캐싱 (에러가 없는 경우만)
-    if 'error' not in final_state and final_state.get('final_answer'):
+
+    # 5. 결과 캐싱 (에러가 없고 live_context가 없는 경우만)
+    if cache_key and 'error' not in final_state and final_state.get('final_answer'):
         qa_cache.set(cache_key, final_state)
-    
+
     print("\n" + "=" * 60)
     print("질문 답변 워크플로우 완료")
     print("=" * 60 + "\n")
