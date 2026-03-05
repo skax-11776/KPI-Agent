@@ -19,7 +19,8 @@ interface Report {
   causes: string[]; scenarios: string[]; results: string[];
   pdf_raw: { basic_info: string; problem: string; root_cause: string; scenario: string; result: string; };
 }
-interface ChatMessage { role: "user"|"assistant"; content: string; timestamp: string; source?: "llm"|"rag"|"error"; suggestedTab?: string; }
+interface ChatMessage { role: "user"|"assistant"; content: string; timestamp: string; source?: "llm"|"rag"|"error"; suggestedTab?: string; noSelect?: boolean; }
+interface ChatExport { id:string; title:string; date:string; msgCount:number; messages:ChatMessage[]; savedToS3?:boolean; }
 interface RealtimePoint { time: string; oee: number; thp: number; tat: number; wip: number; }
 interface LiveKPI { oee:number;thp:number;tat:number;wip:number; oee_prev:number;thp_prev:number;tat_prev:number;wip_prev:number; }
 
@@ -927,10 +928,11 @@ function TabCarousel({initialTab,kpi,thresholds,historyList,dbKpiData,dbEqpData,
 export default function App() {
   type Tab = "dashboard"|"alarms"|"chat"|"database"|"analytics"|"settings";
   type DbTable = "kpi_daily"|"scenario_map"|"rcp_state"|"eqp_state"|"lot_state";
-  type AlarmSub = "latest"|"history";
+  type AlarmSub = "latest"|"history"|"chatlogs";
 
   const [activeTab, setActiveTab]     = useState<Tab>("chat");
   const [alarmSub,  setAlarmSub]      = useState<AlarmSub>("latest");
+  const [chatExports, setChatExports] = useState<ChatExport[]>([]);
   const [thresholds, setThresholds]   = useState<Thresholds>({oee_min:70,thp_min:250,tat_max:3.5,wip_min:200,wip_max:300});
   const [dbTable,   setDbTable]       = useState<DbTable>("kpi_daily");
   const [selReport, setSelReport]     = useState<Report|null>(null);
@@ -956,6 +958,8 @@ export default function App() {
   const [dbLoading,    setDbLoading]    = useState<boolean>(false);
   const [dbError,      setDbError]      = useState<string|null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [pdfSelectMode, setPdfSelectMode] = useState(false);
+  const [pdfSelected, setPdfSelected] = useState<Set<number>>(new Set());
 
 // PDF 목록 로드 (컴포넌트 마운트 시 + 저장/삭제 후)
 useEffect(()=>{
@@ -1043,6 +1047,17 @@ useEffect(()=>{
   init.forEach(([url,cb])=>{
     fetch(url).then(r=>r.json()).then(d=>{if(d.success)cb(d.data||[],d);}).catch(()=>{});
   });
+  // 대화 기록 로드: localStorage(미저장) + S3(저장됨) 병합
+  const localRaw: ChatExport[] = (() => { try{ return JSON.parse(localStorage.getItem('chat_exports')||'[]'); }catch{ return []; } })();
+  fetch("/api/chatlogs").then(r=>r.json()).then(d=>{
+    const s3Items: ChatExport[] = (d.success ? d.data||[] : []).map((e:ChatExport)=>({...e,savedToS3:true}));
+    const s3Ids = new Set(s3Items.map((e:ChatExport)=>e.id));
+    // localStorage 항목 중 S3에 없는 것만 (미업로드)
+    const localOnly = localRaw.filter(e=>!s3Ids.has(e.id));
+    setChatExports([...localOnly, ...s3Items].sort((a,b)=>Number(b.id)-Number(a.id)));
+  }).catch(()=>{
+    setChatExports(localRaw);
+  });
 }, []);
 
 useEffect(()=>{
@@ -1087,46 +1102,90 @@ useEffect(()=>{
   };
 
   // ── 채팅 내용 PDF 내보내기 ──────────────────────────────────────
-  const exportChatToPDF = (msgList: ChatMessage[]) => {
+  // 팝업으로 마크다운 렌더링 미리보기 (보기 버튼용)
+  const openChatPreview = (msgList: ChatMessage[], title: string) => {
     const now = new Date().toLocaleString('ko-KR');
-    const rows = msgList.map(m => {
+    const rows = msgList.map((m, idx) => {
       const isUser = m.role === "user";
       const bg = isUser ? "#eff6ff" : "#f8fafc";
       const border = isUser ? "#bfdbfe" : "#e2e8f0";
       const label = isUser ? "👤 사용자" : "🤖 AI Assistant";
       const labelColor = isUser ? "#1d4ed8" : "#374151";
-      const html = m.content
-        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-        .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
-        .replace(/\n/g,"<br/>");
+      const safe = m.content.replace(/`/g,"&#96;").replace(/\$/g,"&#36;");
       return `<div style="margin-bottom:14px;padding:14px 18px;background:${bg};border:1px solid ${border};border-radius:10px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
           <span style="font-size:12px;font-weight:700;color:${labelColor};">${label}</span>
           <span style="font-size:11px;color:#9ca3af;">${m.timestamp}</span>
         </div>
-        <div style="font-size:13px;color:#374151;line-height:1.7;">${html}</div>
+        <div class="md-body" data-src="${encodeURIComponent(safe)}" style="font-size:13px;color:#374151;line-height:1.75;"></div>
       </div>`;
     }).join('');
-
-    const win = window.open('', '_blank', 'width=820,height=920');
+    const win = window.open('', '_blank', 'width=840,height=940');
     if (!win) return;
     win.document.write(`<!DOCTYPE html><html><head>
       <meta charset="utf-8"/>
-      <title>AI Assistant 대화 — ${now}</title>
+      <title>${title}</title>
+      <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
       <style>
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:36px;color:#0f172a;background:#fff;}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:36px;color:#0f172a;background:#fff;max-width:780px;}
         h1{font-size:20px;font-weight:700;margin:0 0 4px;}
         .meta{font-size:12px;color:#9ca3af;margin-bottom:24px;padding-bottom:14px;border-bottom:2px solid #e2e8f0;}
         .print-btn{padding:8px 22px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:24px;}
+        .md-body h1,.md-body h2{font-size:15px;margin:10px 0 6px;}
+        .md-body h3{font-size:13px;margin:8px 0 4px;}
+        .md-body p{margin:4px 0;}
+        .md-body ul,.md-body ol{margin:4px 0;padding-left:20px;}
+        .md-body li{margin:3px 0;}
+        .md-body strong{font-weight:700;}
+        .md-body code{background:#f1f5f9;padding:1px 5px;border-radius:3px;font-size:12px;font-family:monospace;}
+        .md-body pre{background:#f1f5f9;padding:10px 14px;border-radius:6px;overflow-x:auto;font-size:12px;}
+        .md-body table{border-collapse:collapse;width:100%;font-size:12px;margin:8px 0;}
+        .md-body th,.md-body td{border:1px solid #e2e8f0;padding:6px 10px;text-align:left;}
+        .md-body th{background:#f8fafc;font-weight:700;}
         @media print{.print-btn{display:none;}}
       </style>
     </head><body>
       <h1>🤖 AI Assistant 대화 내용</h1>
-      <div class="meta">내보낸 시각: ${now} &nbsp;·&nbsp; 총 ${msgList.length}개 메시지</div>
+      <div class="meta">${title} &nbsp;·&nbsp; ${msgList.length}개 메시지 &nbsp;·&nbsp; 열람: ${now}</div>
       <button class="print-btn" onclick="window.print()">PDF로 저장 (Ctrl+P)</button>
       ${rows}
+      <script>
+        document.querySelectorAll('.md-body').forEach(el=>{
+          el.innerHTML = marked.parse(decodeURIComponent(el.getAttribute('data-src')||''));
+        });
+      <\/script>
     </body></html>`);
     win.document.close();
+  };
+
+  // 대화 기록 탭에 저장 (로컬 state + localStorage)
+  const saveChatLog = (msgList: ChatMessage[]) => {
+    const now = new Date().toLocaleString('ko-KR');
+    const firstAns = msgList.find(m=>m.role==="assistant");
+    let title = `대화 기록 — ${now}`;
+    if (firstAns) {
+      const ansIdx = msgs.findIndex(m=>m.timestamp===firstAns.timestamp && m.content===firstAns.content);
+      for (let i = ansIdx - 1; i >= 0; i--) {
+        if (msgs[i].role==="user") {
+          const q = msgs[i].content;
+          title = `${q.slice(0,45)}${q.length>45?"…":""}`;
+          break;
+        }
+      }
+    }
+    const newExport: ChatExport = {
+      id: Date.now().toString(),
+      title,
+      date: now,
+      msgCount: msgList.length,
+      messages: msgList,
+      savedToS3: false,
+    };
+    setChatExports(prev=>{
+      const updated = [newExport, ...prev];
+      try{ localStorage.setItem('chat_exports', JSON.stringify(updated)); }catch{}
+      return updated;
+    });
   };
 
   // LLM 전송
@@ -1136,14 +1195,23 @@ useEffect(()=>{
     const t=nowTime();
 
     // PDF 내보내기 키워드 감지 (LLM 호출 없이 처리)
-    if(/pdf|PDF|내보내기|저장해|저장 해|export/i.test(q) && /대화|채팅|chat|기록|내용/i.test(q)) {
+    if(/pdf/i.test(q) || (/내보내기|export/i.test(q) && /대화|채팅|chat|기록/i.test(q))) {
       setMsgs(p=>[...p,{role:"user",content:q,timestamp:t}]);
       setInput("");
       if(msgs.length===0){
         setMsgs(p=>[...p,{role:"assistant",content:"저장할 대화 내용이 없습니다. 먼저 질문을 해보세요.",timestamp:nowTime(),source:"llm"}]);
       } else {
-          exportChatToPDF(msgs);
-        setMsgs(p=>[...p,{role:"assistant",content:`대화 내용 **${msgs.length}개 메시지**를 새 창에서 열었습니다.\n브라우저 인쇄 창에서 **"PDF로 저장"** 을 선택하면 PDF 파일로 저장됩니다.`,timestamp:nowTime(),source:"llm"}]);
+        // 선택 모드 진입 — AI 답변만 기본 선택 (첫 인사 메시지 제외)
+        const firstAssistantIdx = msgs.findIndex(m=>m.role==="assistant");
+        const answerIndices = new Set(
+          msgs
+            .map((m,i)=>({m,i}))
+            .filter(({m,i})=>m.role==="assistant" && i!==firstAssistantIdx && !m.noSelect)
+            .map(({i})=>i)
+        );
+        setPdfSelected(answerIndices);
+        setPdfSelectMode(true);
+        setMsgs(p=>[...p,{role:"assistant",content:"AI 답변 메시지를 클릭해서 선택하세요. 선택 후 상단 저장 버튼을 누르면 Alarm Center 대화 기록 탭에 저장됩니다.",timestamp:nowTime(),source:"llm"}]);
       }
       return;
     }
@@ -1174,7 +1242,7 @@ useEffect(()=>{
     }catch(e){
       setMsgs(p=>[...p,{role:"assistant",content:"오류가 발생했습니다. 잠시 후 다시 시도해주세요.",timestamp:nowTime(),source:"error"}]);
     }finally{ setTyping(false); }
-  },[input,history,typing,kpi,thresholds,msgs,exportChatToPDF]);
+  },[input,history,typing,kpi,thresholds,msgs,saveChatLog]);
 
   const delta=(cur:number,prev:number,inv=false)=>{
     const up=cur>prev; const good=inv?!up:up;
@@ -1388,10 +1456,15 @@ useEffect(()=>{
                 과거 이력 (PDF)
                 <span style={{marginLeft:6,fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:alarmSub==="history"?"#0f172a":"#e5e7eb",color:alarmSub==="history"?"#fff":"#374151"}}>{historyList.length}</span>
               </button>
+              <button style={{...S.subTab,...(alarmSub==="chatlogs"?S.subTabOn:{})}} onClick={()=>setAlarmSub("chatlogs")}>
+                대화 기록
+                <span style={{marginLeft:6,fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:alarmSub==="chatlogs"?"#7c3aed":"#ede9fe",color:alarmSub==="chatlogs"?"#fff":"#7c3aed"}}>{chatExports.length}</span>
+              </button>
             </div>
 
             {/* 최신 알람 상세 */}
             {alarmSub==="latest"&&(
+              <>
               <div style={{...S.card,borderLeft:"4px solid #059669"}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
                   <div>
@@ -1448,34 +1521,33 @@ useEffect(()=>{
                   </div>
                 ))}
               </div>
-            )}
-                    
-                <div style={{borderTop:"1px solid #f3f4f6",paddingTop:16,marginTop:8,display:"flex",gap:12,alignItems:"center"}}>
-                  <button
-                    onClick={()=>setShowPdfModal(true)}
-                    style={{padding:"7px 14px",borderRadius:6,border:"none",background:"#2563eb",color:"#fff",fontWeight:600,fontSize:13,cursor:"pointer"}}
-                  >
-                    PDF 보고서 생성
-                  </button>
-                  {latestSaved&&<span style={{color:"#16a34a",fontWeight:600,fontSize:13}}>RAG에 저장됨</span>}
-                  <button
-                    style={{padding:"6px 12px",borderRadius:6,border:"1px solid #d1d5db",background:"#fff",color:"#6b7280",fontWeight:600,fontSize:13,cursor:"pointer"}}
-                    onClick={async ()=>{
+              <div style={{borderTop:"1px solid #f3f4f6",paddingTop:16,marginTop:8,display:"flex",gap:12,alignItems:"center"}}>
+                <button
+                  onClick={()=>setShowPdfModal(true)}
+                  style={{padding:"7px 14px",borderRadius:6,border:"none",background:"#2563eb",color:"#fff",fontWeight:600,fontSize:13,cursor:"pointer"}}
+                >
+                  PDF 보고서 생성
+                </button>
+                {latestSaved&&<span style={{color:"#16a34a",fontWeight:600,fontSize:13}}>RAG에 저장됨</span>}
+                <button
+                  style={{padding:"6px 12px",borderRadius:6,border:"1px solid #d1d5db",background:"#fff",color:"#6b7280",fontWeight:600,fontSize:13,cursor:"pointer"}}
+                  onClick={async ()=>{
                     if(window.confirm("초기화하면 추가된 보고서 파일도 삭제됩니다. 계속하시겠습니까?")){
-                      // 추가된 파일만 삭제 (기존 11개 제외)
                       if(latestSaved){
                         await deleteReportFile("report_20260131_EQP12_THP.pdf");
                       }
                       setHistoryList(REPORTS);
                       setLatestSaved(false);
                       setLatestAlarmCount(1);
-                      fetchReportList().then(setPdfFiles); // 목록 갱신
+                      fetchReportList().then(setPdfFiles);
                     }
                   }}
-                  >
-                    초기화
-                  </button>
-                </div>
+                >
+                  초기화
+                </button>
+              </div>
+              </>
+            )}
 
             {/* 과거 이력 */}
             {alarmSub==="history"&&(
@@ -1511,6 +1583,73 @@ useEffect(()=>{
                 </div>
               </div>
             )}
+
+            {/* 대화 기록 */}
+            {alarmSub==="chatlogs"&&(
+              <div>
+                {chatExports.length===0?(
+                  <div style={{textAlign:"center" as const,padding:"48px 0",color:"#9ca3af"}}>
+                    <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>저장된 대화 기록 없음</div>
+                    <div style={{fontSize:12}}>AI Assistant에서 "대화 내용 저장해줘"라고 입력하면 여기에 기록됩니다.</div>
+                  </div>
+                ):(
+                  <div style={{display:"flex",flexDirection:"column" as const,gap:10}}>
+                    {chatExports.map((ex)=>{
+                      const deleteFn=async()=>{
+                        if(ex.savedToS3){
+                          try{ await fetch(`/api/chatlogs/${ex.id}`,{method:"DELETE"}); }
+                          catch(e){ console.error("S3 삭제 실패",e); }
+                        }
+                        setChatExports(prev=>{
+                          const updated=prev.filter(e=>e.id!==ex.id);
+                          try{ localStorage.setItem('chat_exports',JSON.stringify(updated)); }catch{}
+                          return updated;
+                        });
+                      };
+                      const saveToS3Fn=async()=>{
+                        try{
+                          await fetch("/api/chatlogs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(ex)});
+                          setChatExports(prev=>{
+                            const updated=prev.map(e=>e.id===ex.id?{...e,savedToS3:true}:e);
+                            try{ localStorage.setItem('chat_exports',JSON.stringify(updated)); }catch{}
+                            return updated;
+                          });
+                        }catch(e){ console.error("S3 저장 실패",e); }
+                      };
+                      const viewFn=()=>openChatPreview(ex.messages, ex.title);
+                      const firstAns = ex.messages.find(m=>m.role==="assistant");
+                      const preview = firstAns ? firstAns.content.replace(/[#*`]/g,"").slice(0,100)+"…" : "";
+                      return(
+                        <div key={ex.id} style={{padding:"16px 20px",borderRadius:10,background:"#fff",border:`1px solid ${ex.savedToS3?"#bbf7d0":"#e2e8f0"}`}}>
+                          <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:preview?10:0}}>
+                            <div style={{flex:1}}>
+                              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
+                                <div style={{fontSize:13,fontWeight:700,color:"#0f172a"}}>{ex.title}</div>
+                                {ex.savedToS3
+                                  ? <span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:4,background:"#dcfce7",color:"#166534"}}>S3 저장됨</span>
+                                  : <span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:4,background:"#f1f5f9",color:"#64748b"}}>로컬</span>
+                                }
+                              </div>
+                              <div style={{fontSize:11,color:"#9ca3af"}}>{ex.date} · {ex.msgCount}개 메시지</div>
+                            </div>
+                            <div style={{display:"flex",gap:8,flexShrink:0}}>
+                              <button onClick={viewFn} style={{padding:"5px 12px",borderRadius:6,border:"1px solid #bfdbfe",background:"#eff6ff",color:"#1d4ed8",fontSize:12,fontWeight:600,cursor:"pointer"}}>보기</button>
+                              {!ex.savedToS3&&(
+                                <button onClick={saveToS3Fn} style={{padding:"5px 12px",borderRadius:6,border:"1px solid #bbf7d0",background:"#f0fdf4",color:"#166534",fontSize:12,fontWeight:600,cursor:"pointer"}}>S3 저장</button>
+                              )}
+                              <button onClick={deleteFn} style={{padding:"5px 12px",borderRadius:6,border:"1px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:12,fontWeight:600,cursor:"pointer"}}>삭제</button>
+                            </div>
+                          </div>
+                          {preview&&(
+                            <div style={{fontSize:12,color:"#475569",lineHeight:1.6,background:"#f8fafc",borderRadius:6,padding:"8px 12px",borderLeft:"3px solid #cbd5e1"}}>{preview}</div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1542,9 +1681,68 @@ useEffect(()=>{
 
             {/* 챗봇 */}
             <div style={{flex:1,display:"flex",flexDirection:"column" as const,overflow:"hidden"}}>
+
+              {/* 선택 모드 컨트롤 바 */}
+              {pdfSelectMode&&(
+                <div style={{padding:"10px 20px",background:"#eff6ff",borderBottom:"2px solid #bfdbfe",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+                  <span style={{fontSize:13,fontWeight:700,color:"#1d4ed8"}}>💾 저장할 메시지를 클릭해서 선택하세요 &nbsp;·&nbsp; <span style={{color:"#2563eb"}}>{pdfSelected.size}개</span> 선택됨</span>
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>setPdfSelected(new Set(msgs.map((_,i)=>i)))} style={{fontSize:11,padding:"4px 12px",borderRadius:5,border:"1px solid #93c5fd",background:"#fff",color:"#1d4ed8",cursor:"pointer",fontWeight:600}}>전체 선택</button>
+                    <button onClick={()=>setPdfSelected(new Set())} style={{fontSize:11,padding:"4px 12px",borderRadius:5,border:"1px solid #d1d5db",background:"#fff",color:"#6b7280",cursor:"pointer"}}>전체 해제</button>
+                    <button
+                      disabled={pdfSelected.size===0}
+                      onClick={()=>{
+                        const selected=msgs.filter((_,i)=>pdfSelected.has(i));
+                        saveChatLog(selected);
+                        setPdfSelectMode(false);setPdfSelected(new Set());
+                        setMsgs(p=>[...p,{role:"assistant",content:`**${selected.length}개 메시지**를 대화 기록에 저장했습니다.\nAlarm Center → **대화 기록** 탭에서 확인할 수 있습니다.`,timestamp:nowTime(),source:"llm",noSelect:true}]);
+                      }}
+                      style={{fontSize:11,padding:"4px 14px",borderRadius:5,border:"none",background:pdfSelected.size===0?"#93c5fd":"#2563eb",color:"#fff",fontWeight:700,cursor:pdfSelected.size===0?"default":"pointer"}}
+                    >저장 ({pdfSelected.size}개)</button>
+                    <button onClick={()=>{setPdfSelectMode(false);setPdfSelected(new Set());}} style={{fontSize:11,padding:"4px 12px",borderRadius:5,border:"1px solid #fca5a5",background:"#fff",color:"#dc2626",cursor:"pointer"}}>취소</button>
+                  </div>
+                </div>
+              )}
+
               <div style={{flex:1,overflowY:"auto" as const,padding:"20px 28px",display:"flex",flexDirection:"column" as const,gap:14}}>
-                {msgs.map((m,i)=>(
-                  <div key={i} style={{display:"flex",alignItems:"flex-end",gap:8,justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+                {msgs.map((m,i)=>{
+                  const firstAssistantIdx = msgs.findIndex(m=>m.role==="assistant");
+                  // suggestedTab이 있는 마지막 assistant 메시지 (저장 완료 메시지 등에 의해 밀리지 않도록)
+                  const lastSuggestedIdx = msgs.reduce((acc,msg,idx)=>msg.role==="assistant"&&msg.suggestedTab?idx:acc, -1);
+                  // 선택 가능: assistant 메시지 중 첫 인사 제외
+                  const isSelectable = pdfSelectMode && m.role==="assistant" && i!==firstAssistantIdx && !m.noSelect;
+                  const checked = isSelectable && pdfSelected.has(i);
+                  const toggleSelect = ()=>{
+                    if(!isSelectable) return;
+                    setPdfSelected(prev=>{const next=new Set(prev); checked?next.delete(i):next.add(i); return next;});
+                  };
+                  return(
+                  <div
+                    key={i}
+                    onClick={toggleSelect}
+                    style={{
+                      display:"flex",alignItems:"flex-end",gap:8,
+                      justifyContent:m.role==="user"?"flex-end":"flex-start",
+                      cursor:isSelectable?"pointer":"default",
+                      borderRadius:12,
+                      transition:"background 0.15s",
+                      background:isSelectable?(checked?"#dbeafe":"rgba(239,246,255,0.5)"):"transparent",
+                      outline:checked?"2px solid #3b82f6":"none",
+                      padding:isSelectable?"6px 8px":"0",
+                      margin:isSelectable?"0 -8px":"0",
+                      opacity:pdfSelectMode&&!isSelectable?0.45:1,
+                    }}
+                  >
+                    {/* 선택 모드: AI 답변에만 체크박스 표시 */}
+                    {isSelectable&&(
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={toggleSelect}
+                        onClick={e=>e.stopPropagation()}
+                        style={{flexShrink:0,width:16,height:16,cursor:"pointer",alignSelf:"center",accentColor:"#2563eb"}}
+                      />
+                    )}
                     {m.role==="assistant"&&(
                       <div style={{width:30,height:30,borderRadius:8,background:"#0f172a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,flexShrink:0,fontFamily:"Pretendard, sans-serif"}}>AI</div>
                     )}
@@ -1578,7 +1776,7 @@ useEffect(()=>{
                           </span>
                         )}
                       </div>
-                      {m.suggestedTab&&m.role==="assistant"&&(
+                      {m.suggestedTab&&m.role==="assistant"&&i===lastSuggestedIdx&&(
                         <TabCarousel
                           initialTab={m.suggestedTab}
                           kpi={kpi}
@@ -1594,7 +1792,8 @@ useEffect(()=>{
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 {typing&&(
                   <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
                     <div style={{width:30,height:30,borderRadius:8,background:"#0f172a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,fontFamily:"Pretendard, sans-serif"}}>AI</div>
@@ -1603,23 +1802,42 @@ useEffect(()=>{
                 )}
                 <div ref={chatEnd}/>
               </div>
-              
+
               {/* 빠른 질문 */}
-              <div style={{padding:"0 28px 10px",display:"flex",gap:7,flexWrap:"wrap" as const}}>
-                {[
-                  "지금 OEE·THP 정상이야?",       // dashboard
-                  "이번 달 KPI 추이 어때?",         // analytics
-                  "최근 알람 원인 뭐야?",            // alarms
-                  "장비 상태 이상 있어?",            // database
-                  "지금 임계값 기준 맞아?",          // settings
-                  "가장 문제 많은 장비 어디야?",     // 필수
-                  "THP 저하 원인 알려줘",            // 필수
-                ].map((s,i)=>(
-                  <button key={i} style={S.chip} onClick={()=>setInput(s)}>{s}</button>
-                ))}
-              </div>
+              {!pdfSelectMode&&(
+                <div style={{padding:"0 28px 10px",display:"flex",gap:7,flexWrap:"wrap" as const}}>
+                  {[
+                    "지금 OEE·THP 정상이야?",
+                    "이번 달 KPI 추이 어때?",
+                    "최근 알람 원인 뭐야?",
+                    "장비 상태 이상 있어?",
+                    "지금 임계값 기준 맞아?",
+                    "가장 문제 많은 장비 어디야?",
+                    "THP 저하 원인 알려줘",
+                  ].map((s,i)=>(
+                    <button key={i} style={S.chip} onClick={()=>setInput(s)}>{s}</button>
+                  ))}
+                </div>
+              )}
               <div style={{padding:"12px 28px 18px",display:"flex",gap:10,borderTop:"1px solid #e5e7eb",background:"#fff"}}>
                 <input style={S.chatInput} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!typing&&handleSend()} placeholder="KPI 데이터 기반 분석 질문... (Enter)"/>
+                {!pdfSelectMode&&(
+                  <button
+                    onClick={()=>{
+                      if(msgs.length===0) return;
+                      const firstAssistantIdx = msgs.findIndex(m=>m.role==="assistant");
+                      const answerIndices = new Set(
+                        msgs.map((m,i)=>({m,i}))
+                          .filter(({m,i})=>m.role==="assistant" && i!==firstAssistantIdx && !m.noSelect)
+                          .map(({i})=>i)
+                      );
+                      setPdfSelected(answerIndices);
+                      setPdfSelectMode(true);
+                    }}
+                    disabled={msgs.length===0}
+                    style={{padding:"8px 14px",borderRadius:8,border:"1px solid #d1d5db",background:"#f8fafc",color:"#374151",fontSize:13,fontWeight:600,cursor:msgs.length===0?"default":"pointer",whiteSpace:"nowrap" as const,flexShrink:0}}
+                  >대화 저장</button>
+                )}
                 <button style={{...S.sendBtn,opacity:typing?0.5:1}} onClick={handleSend} disabled={typing}>{typing?"분석 중...":"전송"}</button>
               </div>
             </div>

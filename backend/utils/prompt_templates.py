@@ -138,7 +138,7 @@ def get_question_answer_prompt(question: str, similar_reports: list, live_contex
         meta = report['metadata']
         reports_text += f"\n### 참고 보고서 {i}"
         reports_text += f" | {meta.get('date','?')} | {meta.get('eqp_id','?')} | KPI: {meta.get('kpi','?')}\n"
-        reports_text += f"{report['document'][:800]}\n"
+        reports_text += f"{report['document'][:1500]}\n"
         reports_text += "---\n"
 
     reports_section = reports_text if reports_text else "※ 유사한 과거 보고서가 없습니다."
@@ -176,7 +176,9 @@ def get_question_answer_prompt(question: str, similar_reports: list, live_contex
 - 문장형 서술 금지. 수치 중심의 bullet 형식으로 작성하세요.
 - 현황 수치 → 이상 여부 → 원인/시사점 순으로 논리적으로 전개하세요.
 - 과거 보고서 인용 시 줄 끝에 `[날짜] [장비]` 형식으로 출처를 표시하세요.
-- 전체 15~20줄 이내로 충분히 작성하세요. "~판단됩니다" 같은 마무리 문장 없이 끝내세요.
+- 각 원인마다 **구체적 수치·장비·날짜**를 포함해 상세히 서술하세요. 보고서 내용을 충분히 활용하세요.
+- 원인별로 세부 항목(sub-bullet)을 추가해 근거를 풍부하게 작성하세요.
+- 전체 30~40줄 수준으로 충분히 작성하세요. "~판단됩니다" 같은 마무리 문장 없이 끝내세요.
 - 제조 무관 질문은 "KPI 분석 전문가라 답변이 어렵습니다" 한 줄만 작성하세요.
 - 답변 맨 마지막 줄에 반드시 `[탭:dashboard]`, `[탭:analytics]`, `[탭:alarms]`, `[탭:database]`, `[탭:settings]` 중 가장 관련 있는 탭 1개를 단독으로 출력하세요. 제조 무관 질문은 `[탭:none]`을 출력하세요.
 

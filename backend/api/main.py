@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from typing import List
 from dotenv import load_dotenv
 from backend.graph.workflow import run_alarm_analysis, run_question_answer
-from backend.api.routes import alarm, question, system, reports, supabase, rds
+from backend.api.routes import alarm, question, system, reports, supabase, rds, chatlogs
 
 import sys
 
@@ -86,6 +86,7 @@ app.include_router(system.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")  
 app.include_router(supabase.router, prefix="/api")
 app.include_router(rds.router, prefix="/api")
+app.include_router(chatlogs.router, prefix="/api")
 
 # Bedrock 채팅 엔드포인트
 class Message(BaseModel):

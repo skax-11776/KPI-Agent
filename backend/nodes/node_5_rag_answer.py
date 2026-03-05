@@ -13,6 +13,23 @@ from backend.config.aws_config import aws_config
 from backend.utils.prompt_templates import get_question_answer_prompt
 
 
+def _get_kpi_filter(question: str) -> dict | None:
+    """질문에서 KPI를 감지해 ChromaDB 메타데이터 필터를 반환합니다."""
+    q = question.upper()
+    # 전체/여러 KPI 질문이면 필터 없음
+    if any(kw in question for kw in ["전체", "모든", "모두", "전반적", "패턴", "비교"]):
+        return None
+    if "OEE" in q:
+        return {"kpi": {"$eq": "OEE"}}
+    if "THP" in q or "THROUGHPUT" in q or "처리량" in q:
+        return {"kpi": {"$eq": "THP"}}
+    if "TAT" in q:
+        return {"kpi": {"$eq": "TAT"}}
+    if "WIP" in q:
+        return {"kpi": {"$in": ["WIP_EXCEED", "WIP_SHORTAGE"]}}
+    return None
+
+
 def _get_search_count(question: str) -> int:
     """질문 유형에 따라 검색할 리포트 수를 결정합니다."""
     question_lower = question.lower()
@@ -63,10 +80,14 @@ def node_5_rag_answer(state: dict) -> dict:
         else:
             # 질문 유형에 따라 검색 수 결정
             n = _get_search_count(question)
+            kpi_filter = _get_kpi_filter(question)
+            if kpi_filter:
+                print(f"   KPI 필터 적용: {kpi_filter}")
             print(f"   검색 개수: {n}개")
             similar_reports = chroma_config.search_similar_reports(
                 query_text=question,
-                n_results=n
+                n_results=n,
+                filter_metadata=kpi_filter
             )
 
         if similar_reports:
