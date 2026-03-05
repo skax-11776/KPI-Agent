@@ -169,6 +169,7 @@ def get_question_answer_prompt(question: str, similar_reports: list, live_contex
 - 과거 보고서 인용 시 줄 끝에 `[날짜] [장비]` 형식으로 출처를 표시하세요.
 - 전체 15~20줄 이내로 충분히 작성하세요. "~판단됩니다" 같은 마무리 문장 없이 끝내세요.
 - 제조 무관 질문은 "KPI 분석 전문가라 답변이 어렵습니다" 한 줄만 작성하세요.
+- 답변 맨 마지막 줄에 반드시 `[탭:dashboard]`, `[탭:analytics]`, `[탭:alarms]`, `[탭:database]`, `[탭:settings]` 중 가장 관련 있는 탭 1개를 단독으로 출력하세요. 제조 무관 질문은 `[탭:none]`을 출력하세요.
 
 ## 답변:
 """

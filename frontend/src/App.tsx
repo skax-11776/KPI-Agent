@@ -19,7 +19,7 @@ interface Report {
   causes: string[]; scenarios: string[]; results: string[];
   pdf_raw: { basic_info: string; problem: string; root_cause: string; scenario: string; result: string; };
 }
-interface ChatMessage { role: "user"|"assistant"; content: string; timestamp: string; source?: "llm"|"rag"|"error"; }
+interface ChatMessage { role: "user"|"assistant"; content: string; timestamp: string; source?: "llm"|"rag"|"error"; suggestedTab?: string; }
 interface RealtimePoint { time: string; oee: number; thp: number; tat: number; wip: number; }
 interface LiveKPI { oee:number;thp:number;tat:number;wip:number; oee_prev:number;thp_prev:number;tat_prev:number;wip_prev:number; }
 
@@ -611,6 +611,215 @@ function SettingsPage({thresholds,setThresholds}:{thresholds:Thresholds;setThres
     </div>
   );
 }
+// ────────────────────────── Tab PiP Carousel ──────────────────────────
+interface TabCarouselProps {
+  initialTab: string;
+  kpi: LiveKPI;
+  thresholds: {oee_min:number;thp_min:number;tat_max:number;wip_min:number;wip_max:number};
+  historyList: Report[];
+  dbKpiData: any[];
+  dbEqpData: any[];
+  onNavigate: (tab: string) => void;
+}
+function TabCarousel({initialTab,kpi,thresholds,historyList,dbKpiData,dbEqpData,onNavigate}:TabCarouselProps) {
+  const [cur, setCur] = React.useState(initialTab);
+  const TABS=[
+    {id:"dashboard",icon:"📊",label:"Dashboard"},
+    {id:"analytics",icon:"📈",label:"Analytics"},
+    {id:"alarms",   icon:"🔔",label:"Alarms"},
+    {id:"database", icon:"🗄️",label:"Database"},
+    {id:"settings", icon:"⚙️",label:"Settings"},
+  ];
+  const td=(v:number,t:number,inv=false)=>inv?v>t:v<t;
+  const kpiRows=[
+    {label:"OEE",val:`${kpi.oee.toFixed(1)}%`,target:`목표 ${thresholds.oee_min}%`,bad:td(kpi.oee,thresholds.oee_min)},
+    {label:"THP",val:`${kpi.thp}개`,          target:`목표 ${thresholds.thp_min}개`,bad:td(kpi.thp,thresholds.thp_min)},
+    {label:"TAT",val:`${kpi.tat.toFixed(2)}h`, target:`상한 ${thresholds.tat_max}h`, bad:td(kpi.tat,thresholds.tat_max,true)},
+    {label:"WIP",val:`${kpi.wip}개`,           target:`${thresholds.wip_min}~${thresholds.wip_max}개`,bad:kpi.wip<thresholds.wip_min||kpi.wip>thresholds.wip_max},
+  ];
+
+  const content=()=>{
+    if(cur==="dashboard") return(
+      <div style={{padding:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+          {kpiRows.map(({label,val,target,bad})=>(
+            <div key={label} style={{padding:"10px 12px",borderRadius:8,background:bad?"#fee2e2":"#f0fdf4",border:`1px solid ${bad?"#fecaca":"#bbf7d0"}`}}>
+              <div style={{fontSize:10,color:"#9ca3af",fontWeight:700}}>{label}</div>
+              <div style={{fontSize:20,fontWeight:800,color:bad?"#dc2626":"#16a34a",margin:"2px 0"}}>{val}</div>
+              <div style={{fontSize:9,color:"#6b7280"}}>{target}  {bad?"이상":"정상"}</div>
+            </div>
+          ))}
+        </div>
+        {dbKpiData.length>0&&<>
+          <div style={{fontSize:10,fontWeight:700,color:"#374151",marginBottom:4}}>최근 KPI 데이터</div>
+          <div style={{fontSize:10}}>
+            <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0"}}>
+              <span>날짜</span><span>장비</span><span>OEE</span><span>THP</span><span>TAT</span><span>WIP</span>
+            </div>
+            {dbKpiData.slice(0,6).map((r:any,i:number)=>(
+              <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151"}}>
+                <span>{r.date?.slice(5)}</span><span>{r.eqp_id}</span>
+                <span style={{color:r.oee_v<r.oee_t?"#dc2626":"#16a34a",fontWeight:600}}>{r.oee_v}%</span>
+                <span style={{color:r.thp_v<r.thp_t?"#dc2626":"#16a34a",fontWeight:600}}>{r.thp_v}</span>
+                <span style={{color:r.tat_v>r.tat_t?"#dc2626":"#16a34a",fontWeight:600}}>{r.tat_v}h</span>
+                <span>{r.wip_v}</span>
+              </div>
+            ))}
+          </div>
+        </>}
+      </div>
+    );
+
+    if(cur==="analytics") {
+      // KPI별 건수 집계
+      const kpiCount: Record<string,number> = {};
+      historyList.forEach(r=>{ kpiCount[r.alarm_kpi]=(kpiCount[r.alarm_kpi]||0)+1; });
+      const kpiColors: Record<string,string> = {OEE:"#2563eb",THP:"#059669",TAT:"#d97706",WIP:"#7c3aed"};
+      const maxCnt = Math.max(...Object.values(kpiCount), 1);
+      return(
+        <div style={{padding:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#374151",marginBottom:8}}>알람 KPI 분포 ({historyList.length}건)</div>
+          {/* KPI 건수 바 차트 */}
+          <div style={{marginBottom:12}}>
+            {Object.entries(kpiCount).map(([kpi,cnt])=>(
+              <div key={kpi} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                <span style={{width:80,fontSize:10,fontWeight:700,color:kpiColors[kpi]||"#374151",flexShrink:0}}>{kpi}</span>
+                <div style={{flex:1,height:12,background:"#f1f5f9",borderRadius:4,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${(cnt/maxCnt)*100}%`,background:kpiColors[kpi]||"#94a3b8",borderRadius:4}}/>
+                </div>
+                <span style={{fontSize:10,color:"#374151",fontWeight:600}}>{cnt}건</span>
+              </div>
+            ))}
+          </div>
+          {/* 알람 이력 목록 */}
+          <div style={{fontSize:10,fontWeight:700,color:"#374151",marginBottom:6}}>알람 이력 (달성률 기준)</div>
+          <div style={{fontSize:10}}>
+            <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr 1fr 0.8fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0"}}>
+              <span>날짜</span><span>장비</span><span>KPI</span><span>목표→실적</span><span>달성률</span>
+            </div>
+            {historyList.slice(0,10).map((r,i)=>{
+              const rate = r.alarm_kpi==="TAT" ? (r.target_num/r.actual_num*100) : (r.actual_num/r.target_num*100);
+              const bad = rate < 90;
+              return(
+                <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr 1fr 0.8fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151"}}>
+                  <span>{r.date}</span>
+                  <span>{r.eqp_id}</span>
+                  <span style={{color:kpiColors[r.alarm_kpi]||"#374151",fontWeight:600}}>{r.alarm_kpi}</span>
+                  <span>{r.target_raw}→{r.actual_raw}</span>
+                  <span style={{color:bad?"#dc2626":"#16a34a",fontWeight:600}}>{rate.toFixed(0)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    if(cur==="alarms") return(
+      <div style={{padding:12}}>
+        <div style={{padding:"10px 12px",borderRadius:8,background:"#fee2e2",border:"1px solid #fecaca",marginBottom:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+            <span style={{fontWeight:700,fontSize:12,color:"#991b1b"}}>🔴 최신 알람</span>
+            <span style={{fontSize:9,color:"#9ca3af"}}>{LATEST_ALARM.date} {LATEST_ALARM.time}</span>
+          </div>
+          <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{LATEST_ALARM.eqp_id} — THP 이상</div>
+          <div style={{fontSize:10,color:"#374151"}}>목표 {LATEST_ALARM.thp_t}개 → 실적 {LATEST_ALARM.thp_v}개 <span style={{color:"#dc2626",fontWeight:700}}>({LATEST_ALARM.thp_v-LATEST_ALARM.thp_t})</span></div>
+          <div style={{fontSize:10,color:"#374151",marginTop:4}}>
+            {LATEST_ALARM.causes.slice(0,2).map((c,i)=><div key={i} style={{marginTop:2}}>· {c}</div>)}
+          </div>
+        </div>
+        <div style={{fontSize:11,fontWeight:700,color:"#374151",marginBottom:6}}>과거 이력 ({historyList.length}건)</div>
+        {historyList.slice(0,6).map((r,i)=>(
+          <div key={i} style={{padding:"6px 10px",borderRadius:6,background:"#f9fafb",border:"1px solid #f3f4f6",marginBottom:4,fontSize:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+              <span style={{fontWeight:700}}>{r.eqp_id} — {r.alarm_kpi}</span>
+              <span style={{color:"#9ca3af"}}>{r.date}</span>
+            </div>
+            <div style={{color:"#374151"}}>목표 {r.target_raw} → 실적 {r.actual_raw} <span style={{color:"#dc2626",fontWeight:600}}>{r.diff_raw}</span></div>
+          </div>
+        ))}
+      </div>
+    );
+
+    if(cur==="database") return(
+      <div style={{padding:12}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#374151",marginBottom:8}}>KPI_DAILY ({dbKpiData.length}건)</div>
+        {dbKpiData.length>0?(
+          <div style={{fontSize:10,overflowX:"auto" as const}}>
+            <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:340}}>
+              <span>날짜</span><span>장비</span><span>OEE목</span><span>OEE실</span><span>THP목</span><span>THP실</span><span>TAT목</span><span>TAT실</span>
+            </div>
+            {dbKpiData.slice(0,10).map((r:any,i:number)=>(
+              <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:340}}>
+                <span>{r.date?.slice(5)}</span><span>{r.eqp_id}</span>
+                <span>{r.oee_t}%</span><span style={{color:r.oee_v<r.oee_t?"#dc2626":"#16a34a",fontWeight:600}}>{r.oee_v}%</span>
+                <span>{r.thp_t}</span><span style={{color:r.thp_v<r.thp_t?"#dc2626":"#16a34a",fontWeight:600}}>{r.thp_v}</span>
+                <span>{r.tat_t}h</span><span style={{color:r.tat_v>r.tat_t?"#dc2626":"#16a34a",fontWeight:600}}>{r.tat_v}h</span>
+              </div>
+            ))}
+          </div>
+        ):<div style={{color:"#9ca3af",fontSize:11}}>데이터 없음</div>}
+        {dbEqpData.length>0&&<>
+          <div style={{fontSize:11,fontWeight:700,color:"#374151",margin:"12px 0 6px"}}>EQP_STATE ({dbEqpData.length}건)</div>
+          {dbEqpData.slice(0,5).map((r:any,i:number)=>(
+            <div key={i} style={{fontSize:10,padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",display:"flex",gap:12}}>
+              <span>{r.event_time?.slice(5,16)}</span>
+              <span style={{fontWeight:600}}>{r.eqp_id}</span>
+              <span style={{color:r.state==="DOWN"?"#dc2626":"#16a34a",fontWeight:600}}>{r.state}</span>
+            </div>
+          ))}
+        </>}
+      </div>
+    );
+
+    if(cur==="settings") return(
+      <div style={{padding:12}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#374151",marginBottom:10}}>알람 임계값 설정</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {[
+            {label:"OEE 하한 (이하 알람)",val:`${thresholds.oee_min}%`,color:"#2563eb"},
+            {label:"THP 하한 (이하 알람)",val:`${thresholds.thp_min}개`,color:"#059669"},
+            {label:"TAT 상한 (이상 알람)",val:`${thresholds.tat_max}h`,color:"#d97706"},
+            {label:"WIP 하한",            val:`${thresholds.wip_min}개`,color:"#7c3aed"},
+            {label:"WIP 상한",            val:`${thresholds.wip_max}개`,color:"#7c3aed"},
+          ].map(({label,val,color})=>(
+            <div key={label} style={{padding:"8px 10px",borderRadius:7,background:"#f8fafc",border:"1px solid #e2e8f0"}}>
+              <div style={{fontSize:9,color:"#9ca3af",marginBottom:2}}>{label}</div>
+              <div style={{fontSize:18,fontWeight:800,color}}>{val}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+    return null;
+  };
+
+  return(
+    <div style={{marginTop:8,border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden",background:"#fff"}}>
+      {/* 탭 헤더 */}
+      <div style={{display:"flex",background:"#f8fafc",borderBottom:"1px solid #e2e8f0",overflowX:"auto" as const}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setCur(t.id)} style={{
+            flex:"0 0 auto",padding:"7px 10px",border:"none",background:"transparent",
+            borderBottom:cur===t.id?"2px solid #2563eb":"2px solid transparent",
+            color:cur===t.id?"#2563eb":"#6b7280",
+            fontWeight:cur===t.id?700:400,fontSize:10,cursor:"pointer",whiteSpace:"nowrap" as const,
+          }}>{t.icon} {t.label}</button>
+        ))}
+      </div>
+      {/* 콘텐츠 영역 */}
+      <div style={{height:360,overflowY:"auto" as const}}>{content()}</div>
+      {/* 하단 이동 버튼 */}
+      <div style={{padding:"6px 12px",background:"#f8fafc",borderTop:"1px solid #e2e8f0",display:"flex",justifyContent:"flex-end"}}>
+        <button onClick={()=>onNavigate(cur)} style={{
+          fontSize:10,fontWeight:700,padding:"4px 12px",borderRadius:5,
+          border:"1px solid #bfdbfe",background:"#eff6ff",color:"#1d4ed8",cursor:"pointer",
+        }}>전체 화면에서 보기 →</button>
+      </div>
+    </div>
+  );
+}
+
 // ────────────────────────── 메인 App ──────────────────────────
 export default function App() {
   type Tab = "dashboard"|"alarms"|"chat"|"database"|"analytics"|"settings";
@@ -635,7 +844,7 @@ export default function App() {
   const [dbEqpData, setDbEqpData] = useState<any[]>([]);
   const [dbRcpData, setDbRcpData] = useState<any[]>([]);
   const [dbScenarioData, setDbScenarioData] = useState<any[]>([]);
-  const [dashboardSummary, setDashboardSummary] = useState<any>(null);
+  const [_dashboardSummary, setDashboardSummary] = useState<any>(null);
   const [dbFilterDate, setDbFilterDate] = useState<string>("all");
   const [dbFilterEqp,  setDbFilterEqp]  = useState<string>("all");
   const [dbPage,       setDbPage]       = useState<number>(1);
@@ -749,6 +958,17 @@ useEffect(()=>{
     .finally(()=>{ setDbLoading(false); });
 }, [dbTable]);
 
+  // 질문/답변 키워드로 관련 탭 감지
+  const detectTab = (question: string, answer: string): string|null => {
+    const text = (question + ' ' + answer).toLowerCase();
+    if (/알람|alarm|경보|신규|이력|eqp12/.test(text)) return 'alarms';
+    if (/설정|임계값|threshold|oee_min|thp_min/.test(text)) return 'settings';
+    if (/데이터베이스|database|lot_state|eqp_state|rcp_state/.test(text)) return 'database';
+    if (/analytics|분석|일별|추이|트렌드/.test(text)) return 'analytics';
+    if (/oee|thp|tat|wip|대시보드|dashboard|라인/.test(text)) return 'dashboard';
+    return null;
+  };
+
   // LLM 전송
   const handleSend = useCallback(async()=>{
     if(!input.trim()||typing) return;
@@ -760,50 +980,27 @@ useEffect(()=>{
     setTyping(true);
     setHistory(newH);
     try{
-      // 현재 탭 데이터를 컨텍스트로 빌드
+      // 실시간 KPI 스냅샷만 전달 (최소 컨텍스트)
       const liveContext = [
-        // ── Dashboard ──
-        `## Dashboard (실시간 KPI)`,
+        `## 현재 KPI (실시간)`,
         `- OEE: ${kpi.oee.toFixed(1)}% (목표: ${thresholds.oee_min}%)`,
         `- THP: ${kpi.thp}개 (목표: ${thresholds.thp_min}개)`,
         `- TAT: ${kpi.tat.toFixed(2)}h (목표: ${thresholds.tat_max}h)`,
         `- WIP: ${kpi.wip}개 (목표 범위: ${thresholds.wip_min}~${thresholds.wip_max}개)`,
-        ``,
-        // ── Analytics (RDS 최신 일별 데이터) ──
-        ...(dashboardSummary ? [
-          `## Analytics (RDS 최신 KPI 일별)`,
-          `- 기준일: ${dashboardSummary.date} | 장비: ${dashboardSummary.eqp_id} | 라인: ${dashboardSummary.line_id} | 공정: ${dashboardSummary.oper_id}`,
-          `- OEE ${dashboardSummary.oee_v}% / 목표 ${dashboardSummary.oee_t}% | THP ${dashboardSummary.thp_v}개 / 목표 ${dashboardSummary.thp_t}개`,
-          `- TAT ${dashboardSummary.tat_v}h / 목표 ${dashboardSummary.tat_t}h | WIP ${dashboardSummary.wip_v}개 / 목표 ${dashboardSummary.wip_t}개`,
-          ``,
-        ] : []),
-        // ── Alarm Center ──
-        `## Alarm Center (최신 알람)`,
-        `- 일시: ${LATEST_ALARM.date} ${LATEST_ALARM.time} | 장비: ${LATEST_ALARM.eqp_id} | ${LATEST_ALARM.line_id} | ${LATEST_ALARM.oper_id}`,
-        `- 알람 KPI: ${LATEST_ALARM.alarm_kpi} (목표 ${LATEST_ALARM.thp_t}개 → 실적 ${LATEST_ALARM.thp_v}개)`,
-        `- 주요 원인: ${LATEST_ALARM.causes.slice(0,2).join(' / ')}`,
-        ``,
-        `## Alarm Center (과거 이력 ${historyList.length}건)`,
-        ...historyList.slice(0,8).map(r=>`- ${r.date} ${r.eqp_id} ${r.alarm_kpi}: 목표 ${r.target_raw} → 실적 ${r.actual_raw} | 원인: ${r.causes[0]}`),
-        ``,
-        // ── Database ──
-        `## Database (RDS 로드 현황)`,
-        `- KPI_DAILY: ${dbKpiData.length}건${dbKpiData.length>0 ? ` | 최신: ${dbKpiData[0]?.date} ${dbKpiData[0]?.eqp_id}` : ''}`,
-        `- EQP_STATE: ${dbEqpData.length}건${dbEqpData.length>0 ? ` | 최신: ${dbEqpData[0]?.date} ${dbEqpData[0]?.eqp_id} ${dbEqpData[0]?.state}` : ''}`,
-        `- LOT_STATE: ${dbLotData.length}건${dbLotData.length>0 ? ` | 최신: ${dbLotData[0]?.date} ${dbLotData[0]?.lot_id}` : ''}`,
-        `- RCP_STATE: ${dbRcpData.length}건${dbRcpData.length>0 ? ` | 최신: ${dbRcpData[0]?.rcp_id} 복잡도 ${dbRcpData[0]?.complexity}` : ''}`,
-        ``,
-        // ── Settings ──
-        `## Settings (알람 임계값)`,
-        `- OEE 하한: ${thresholds.oee_min}% | THP 하한: ${thresholds.thp_min}개 | TAT 상한: ${thresholds.tat_max}h | WIP 범위: ${thresholds.wip_min}~${thresholds.wip_max}개`,
       ].join('\n');
       const {text,source}=await callLLM(newH, liveContext);
-      setHistory(h=>[...h,{role:"assistant",content:text}]);
-      setMsgs(p=>[...p,{role:"assistant",content:text,timestamp:nowTime(),source}]);
+      // LLM이 반환한 [탭:xxx] 태그 추출 후 제거
+      const tabMatch = text.match(/\[탭:(\w+)\]/);
+      const llmTab = tabMatch ? tabMatch[1] : null;
+      const cleanText = text.replace(/\[탭:\w+\]\s*/g,'').trimEnd();
+      // 키워드 기반 fallback (LLM 태그 없거나 none일 때)
+      const suggestedTab = (llmTab && llmTab!=='none') ? llmTab : detectTab(q, cleanText) ?? undefined;
+      setHistory(h=>[...h,{role:"assistant",content:cleanText}]);
+      setMsgs(p=>[...p,{role:"assistant",content:cleanText,timestamp:nowTime(),source,suggestedTab}]);
     }catch(e){
       setMsgs(p=>[...p,{role:"assistant",content:"오류가 발생했습니다. 잠시 후 다시 시도해주세요.",timestamp:nowTime(),source:"error"}]);
     }finally{ setTyping(false); }
-  },[input,history,typing,kpi,thresholds,historyList,dashboardSummary,dbKpiData,dbEqpData,dbLotData,dbRcpData]);
+  },[input,history,typing,kpi,thresholds]);
 
   const delta=(cur:number,prev:number,inv=false)=>{
     const up=cur>prev; const good=inv?!up:up;
@@ -928,7 +1125,7 @@ useEffect(()=>{
       </div>
     ))}
     <div style={S.dateChip}>{new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false})}</div>
-    <div style={S.alarmChip}>🔴 신규 알람 1건</div>
+    {(kpi.oee<thresholds.oee_min||kpi.thp<thresholds.thp_min||kpi.tat>thresholds.tat_max||kpi.wip<thresholds.wip_min||kpi.wip>thresholds.wip_max)&&<div style={S.alarmChip}>🔴 신규 알람 1건</div>}
     <button
       onClick={()=>setShowContactModal(true)}
       style={{
@@ -1207,6 +1404,17 @@ useEffect(()=>{
                           </span>
                         )}
                       </div>
+                      {m.suggestedTab&&m.role==="assistant"&&(
+                        <TabCarousel
+                          initialTab={m.suggestedTab}
+                          kpi={kpi}
+                          thresholds={thresholds}
+                          historyList={historyList}
+                          dbKpiData={dbKpiData}
+                          dbEqpData={dbEqpData}
+                          onNavigate={t=>setActiveTab(t as Tab)}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1221,7 +1429,15 @@ useEffect(()=>{
               
               {/* 빠른 질문 */}
               <div style={{padding:"0 28px 10px",display:"flex",gap:7,flexWrap:"wrap" as const}}>
-                {["지금 라인 상태 어때?","지금 현황 알려줘.","알람 많이 난 장비 어디야?","THP 왜 이래?","이번 달 OEE 최악은?"].map((s,i)=>(
+                {[
+                  "지금 OEE·THP 정상이야?",       // dashboard
+                  "이번 달 KPI 추이 어때?",         // analytics
+                  "최근 알람 원인 뭐야?",            // alarms
+                  "장비 상태 이상 있어?",            // database
+                  "지금 임계값 기준 맞아?",          // settings
+                  "가장 문제 많은 장비 어디야?",     // 필수
+                  "THP 저하 원인 알려줘",            // 필수
+                ].map((s,i)=>(
                   <button key={i} style={S.chip} onClick={()=>setInput(s)}>{s}</button>
                 ))}
               </div>
