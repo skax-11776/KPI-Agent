@@ -1086,11 +1086,68 @@ useEffect(()=>{
     return null;
   };
 
+  // ── 채팅 내용 PDF 내보내기 ──────────────────────────────────────
+  const exportChatToPDF = (msgList: ChatMessage[]) => {
+    const now = new Date().toLocaleString('ko-KR');
+    const rows = msgList.map(m => {
+      const isUser = m.role === "user";
+      const bg = isUser ? "#eff6ff" : "#f8fafc";
+      const border = isUser ? "#bfdbfe" : "#e2e8f0";
+      const label = isUser ? "👤 사용자" : "🤖 AI Assistant";
+      const labelColor = isUser ? "#1d4ed8" : "#374151";
+      const html = m.content
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
+        .replace(/\n/g,"<br/>");
+      return `<div style="margin-bottom:14px;padding:14px 18px;background:${bg};border:1px solid ${border};border-radius:10px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:12px;font-weight:700;color:${labelColor};">${label}</span>
+          <span style="font-size:11px;color:#9ca3af;">${m.timestamp}</span>
+        </div>
+        <div style="font-size:13px;color:#374151;line-height:1.7;">${html}</div>
+      </div>`;
+    }).join('');
+
+    const win = window.open('', '_blank', 'width=820,height=920');
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html><html><head>
+      <meta charset="utf-8"/>
+      <title>AI Assistant 대화 — ${now}</title>
+      <style>
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:36px;color:#0f172a;background:#fff;}
+        h1{font-size:20px;font-weight:700;margin:0 0 4px;}
+        .meta{font-size:12px;color:#9ca3af;margin-bottom:24px;padding-bottom:14px;border-bottom:2px solid #e2e8f0;}
+        .print-btn{padding:8px 22px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:24px;}
+        @media print{.print-btn{display:none;}}
+      </style>
+    </head><body>
+      <h1>🤖 AI Assistant 대화 내용</h1>
+      <div class="meta">내보낸 시각: ${now} &nbsp;·&nbsp; 총 ${msgList.length}개 메시지</div>
+      <button class="print-btn" onclick="window.print()">PDF로 저장 (Ctrl+P)</button>
+      ${rows}
+    </body></html>`);
+    win.document.close();
+  };
+
   // LLM 전송
   const handleSend = useCallback(async()=>{
     if(!input.trim()||typing) return;
     const q=input.trim();
     const t=nowTime();
+
+    // PDF 내보내기 키워드 감지 (LLM 호출 없이 처리)
+    if(/pdf|PDF|내보내기|저장해|저장 해|export/i.test(q) && /대화|채팅|chat|기록|내용/i.test(q)) {
+      setMsgs(p=>[...p,{role:"user",content:q,timestamp:t}]);
+      setInput("");
+      if(msgs.length===0){
+        setMsgs(p=>[...p,{role:"assistant",content:"저장할 대화 내용이 없습니다. 먼저 질문을 해보세요.",timestamp:nowTime(),source:"llm"}]);
+      } else {
+          exportChatToPDF(msgs);
+        setMsgs(p=>[...p,{role:"assistant",content:`대화 내용 **${msgs.length}개 메시지**를 새 창에서 열었습니다.\n브라우저 인쇄 창에서 **"PDF로 저장"** 을 선택하면 PDF 파일로 저장됩니다.`,timestamp:nowTime(),source:"llm"}]);
+      }
+      return;
+    }
+
     const newH=[...history,{role:"user",content:q}];
     setMsgs(p=>[...p,{role:"user",content:q,timestamp:t}]);
     setInput("");
@@ -1117,7 +1174,7 @@ useEffect(()=>{
     }catch(e){
       setMsgs(p=>[...p,{role:"assistant",content:"오류가 발생했습니다. 잠시 후 다시 시도해주세요.",timestamp:nowTime(),source:"error"}]);
     }finally{ setTyping(false); }
-  },[input,history,typing,kpi,thresholds]);
+  },[input,history,typing,kpi,thresholds,msgs,exportChatToPDF]);
 
   const delta=(cur:number,prev:number,inv=false)=>{
     const up=cur>prev; const good=inv?!up:up;
