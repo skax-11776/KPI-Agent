@@ -754,11 +754,13 @@ function TabCarousel({initialTab,kpi,thresholds,historyList,dbKpiData,dbEqpData,
       };
       const curData = tableMap[dbSub] || [];
       const getDate=(r:any)=>r.date?.slice(0,10)||r.event_time?.slice(0,10)||null;
+      // scenario_map은 eqp 필드명이 alarm_eqp_id
+      const getEqp=(r:any)=>dbSub==="scenario_map"?r.alarm_eqp_id:r.eqp_id;
       const uniqDates = Array.from(new Set(curData.map(getDate).filter(Boolean))).sort() as string[];
-      const uniqEqps  = Array.from(new Set(curData.map((r:any)=>r.eqp_id).filter(Boolean))).sort() as string[];
+      const uniqEqps  = Array.from(new Set(curData.map(getEqp).filter(Boolean))).sort() as string[];
       const filtered = curData.filter((r:any)=>{
         if(filterDate!=="all" && getDate(r)!==filterDate) return false;
-        if(filterEqp!=="all"  && r.eqp_id!==filterEqp)   return false;
+        if(filterEqp!=="all"  && getEqp(r)!==filterEqp)  return false;
         return true;
       });
       const selectStyle:React.CSSProperties={fontSize:10,padding:"2px 4px",border:"1px solid #e2e8f0",borderRadius:4,background:"#fff",cursor:"pointer",color:"#374151"};
@@ -819,49 +821,51 @@ function TabCarousel({initialTab,kpi,thresholds,historyList,dbKpiData,dbEqpData,
                 ))}
               </>}
               {dbSub==="eqp_state"&&<>
-                <div style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 0.8fr 0.8fr 1fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:320}}>
-                  <span>이벤트 시간</span><span>장비</span><span>상태</span><span>이전</span><span>지속(분)</span>
+                <div style={{display:"grid",gridTemplateColumns:"1.6fr 1fr 1.2fr 0.8fr 0.8fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:340}}>
+                  <span>이벤트 시간</span><span>장비</span><span>LOT</span><span>RCP</span><span>상태</span>
                 </div>
                 {filtered.slice(0,15).map((r:any,i:number)=>(
-                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 0.8fr 0.8fr 1fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:320}}>
+                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.6fr 1fr 1.2fr 0.8fr 0.8fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:340}}>
                     <span>{r.event_time?.slice(5,16)}</span><span>{r.eqp_id}</span>
-                    <span style={{color:r.state==="DOWN"?"#dc2626":r.state==="RUN"?"#16a34a":"#374151",fontWeight:600}}>{r.state}</span>
-                    <span>{r.prev_state}</span><span>{r.duration_min}</span>
+                    <span style={{fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.lot_id}</span>
+                    <span>{r.rcp_id}</span>
+                    <span style={{color:r.eqp_state==="DOWN"?"#dc2626":r.eqp_state==="RUN"?"#16a34a":"#374151",fontWeight:600}}>{r.eqp_state}</span>
                   </div>
                 ))}
               </>}
               {dbSub==="lot_state"&&<>
-                <div style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 1.2fr 0.8fr 0.8fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:320}}>
-                  <span>이벤트 시간</span><span>장비</span><span>LOT ID</span><span>상태</span><span>RCP</span>
+                <div style={{display:"grid",gridTemplateColumns:"1.6fr 1fr 1fr 0.8fr 0.6fr 0.6fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:340}}>
+                  <span>이벤트 시간</span><span>장비</span><span>LOT ID</span><span>상태</span><span>투입</span><span>HOLD</span>
                 </div>
                 {filtered.slice(0,15).map((r:any,i:number)=>(
-                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 1.2fr 0.8fr 0.8fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:320}}>
+                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.6fr 1fr 1fr 0.8fr 0.6fr 0.6fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:340}}>
                     <span>{r.event_time?.slice(5,16)}</span><span>{r.eqp_id}</span>
-                    <span style={{fontSize:9}}>{r.lot_id}</span><span>{r.state}</span><span>{r.rcp_id}</span>
+                    <span style={{fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.lot_id}</span>
+                    <span style={{color:r.lot_state==="HOLD"?"#dc2626":r.lot_state==="RUN"?"#16a34a":"#374151",fontWeight:600}}>{r.lot_state}</span>
+                    <span>{r.in_cnt}</span>
+                    <span style={{color:r.hold_cnt>0?"#dc2626":"#374151",fontWeight:r.hold_cnt>0?700:400}}>{r.hold_cnt}</span>
                   </div>
                 ))}
               </>}
               {dbSub==="rcp_state"&&<>
-                <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr 1fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:260}}>
-                  <span>RCP ID</span><span>장비</span><span>복잡도</span><span>처리시간(분)</span>
+                <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 1fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:220}}>
+                  <span>RCP ID</span><span>장비</span><span>복잡도</span>
                 </div>
                 {filtered.slice(0,15).map((r:any,i:number)=>(
-                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr 1fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:260}}>
+                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 1fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:220}}>
                     <span>{r.rcp_id}</span><span>{r.eqp_id}</span>
-                    <span style={{fontWeight:600,color:r.complexity>=8?"#dc2626":"#374151"}}>{r.complexity}</span>
-                    <span>{r.process_time_min}</span>
+                    <span style={{fontWeight:700,color:r.complex_level>=9?"#dc2626":r.complex_level>=7?"#d97706":"#16a34a"}}>Lv.{r.complex_level}</span>
                   </div>
                 ))}
               </>}
               {dbSub==="scenario_map"&&<>
-                <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr 0.8fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:280}}>
-                  <span>날짜</span><span>장비</span><span>KPI</span><span>알람</span>
+                <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:240}}>
+                  <span>날짜</span><span>장비</span><span>KPI</span>
                 </div>
                 {filtered.slice(0,15).map((r:any,i:number)=>(
-                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr 0.8fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:280}}>
-                    <span>{r.date?.slice(5)}</span><span>{r.eqp_id}</span>
+                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:240}}>
+                    <span>{r.date?.slice(5)}</span><span>{r.alarm_eqp_id}</span>
                     <span style={{color:"#2563eb",fontWeight:600}}>{r.alarm_kpi}</span>
-                    <span style={{color:"#dc2626",fontSize:9}}>{r.alarm_yn?"Y":""}</span>
                   </div>
                 ))}
               </>}
