@@ -19,29 +19,29 @@ def test_root_cause_analysis():
     """근본 원인 분석 테스트"""
     
     print("\n" + "=" * 60)
-    print("🧪 근본 원인 분석 테스트")
+    print("근본 원인 분석 테스트")
     print("=" * 60 + "\n")
     
     # 초기 State
     state = {'input_type': 'alarm'}
     
     # Node 1: Input Router
-    print("1️⃣ Node 1 실행...")
+    print("1. Node 1 실행...")
     result1 = node_1_input_router(state)
     state.update(result1)
     
     # Node 2: Load Alarm KPI
-    print("2️⃣ Node 2 실행...")
+    print("2. Node 2 실행...")
     result2 = node_2_load_alarm_kpi(state)
     state.update(result2)
     
     # Node 3: Context Fetch
-    print("3️⃣ Node 3 실행...")
+    print("3. Node 3 실행...")
     result3 = node_3_context_fetch(state)
     state.update(result3)
     
     # Node 6: Root Cause Analysis
-    print("4️⃣ Node 6 실행...")
+    print("4. Node 6 실행...")
     result6 = node_6_root_cause_analysis(state)
     state.update(result6)
     
@@ -66,7 +66,7 @@ def test_root_cause_analysis():
     
     # 확률 합계 확인 (대략 100에 가까워야 함)
     total_prob = sum(c['probability'] for c in root_causes)
-    print(f"\n✅ 근본 원인 분석 성공!")
+    print(f"\n근본 원인 분석 성공!")
     print(f"   총 {len(root_causes)}개 원인")
     print(f"   확률 합계: {total_prob}%")
     
@@ -75,14 +75,14 @@ def test_root_cause_analysis():
     llm_calls = metadata.get('llm_calls', 0)
     print(f"   LLM 호출 횟수: {llm_calls}회")
     
-    print("\n✅ 근본 원인 분석 테스트 통과!\n")
+    print("\n근본 원인 분석 테스트 통과!\n")
 
 
 def test_specific_alarm_analysis():
     """특정 알람 분석 테스트 (2026-01-20, EQP01, OEE)"""
     
     print("=" * 60)
-    print("🧪 특정 알람 분석 테스트")
+    print("특정 알람 분석 테스트")
     print("=" * 60 + "\n")
     
     # 과거 알람 지정
@@ -106,7 +106,7 @@ def test_specific_alarm_analysis():
     
     root_causes = state['root_causes']
     
-    print(f"\n✅ 2026-01-20 EQP01 OEE 알람 분석 완료")
+    print(f"\n2026-01-20 EQP01 OEE 알람 분석 완료")
     print(f"\n근본 원인 후보:")
     
     for i, cause in enumerate(root_causes, 1):
@@ -114,27 +114,27 @@ def test_specific_alarm_analysis():
         print(f"   확률: {cause['probability']}%")
         print(f"   근거: {cause['evidence'][:80]}...")
     
-    print("\n✅ 특정 알람 분석 테스트 통과!\n")
+    print("\n특정 알람 분석 테스트 통과!\n")
 
 
 def main():
     """모든 테스트 실행"""
     
-    print("\n🧪 Node 6: Root Cause Analysis 테스트 시작\n")
+    print("\nNode 6: Root Cause Analysis 테스트 시작\n")
     
     try:
         test_root_cause_analysis()
         test_specific_alarm_analysis()
         
         print("=" * 60)
-        print("🎊 모든 테스트 통과!")
+        print("모든 테스트 통과!")
         print("=" * 60 + "\n")
         
     except AssertionError as e:
-        print(f"\n❌ 테스트 실패: {e}\n")
+        print(f"\n[ERROR] 테스트 실패: {e}\n")
         raise
     except Exception as e:
-        print(f"\n❌ 예상치 못한 오류: {e}\n")
+        print(f"\n[ERROR] 예상치 못한 오류: {e}\n")
         import traceback
         traceback.print_exc()
         raise

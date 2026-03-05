@@ -10,6 +10,9 @@
  */
 
 import React, { useState } from 'react';
+import axios from 'axios';
+
+const API_BASE = '/api';
 
 // ─────────────────────────────────────────────
 // 타입 정의
@@ -271,12 +274,36 @@ const AlarmCenter: React.FC = () => {
     setShowRagModal(true);
   };
 
+  // PDF 파일명 생성 헬퍼 (report_20260131_EQP12_THP.pdf)
+  const getPdfFilename = (alarm: AlarmReport) =>
+    `report_${alarm.date.replace(/-/g, '')}_${alarm.eqp}_${alarm.kpi}.pdf`;
+
   // ── RAG 저장 확인 ──
-  const handleConfirmRag = () => {
+  const handleConfirmRag = async () => {
     setShowRagModal(false);
 
-    // 과거이력에 최신 알람 추가 (이미 저장된 경우 중복 방지)
     if (!latestSaved) {
+      // 1. 백엔드에 PDF 파일 실제 저장
+      const filename = getPdfFilename(LATEST_ALARM);
+      try {
+        await axios.post(`${API_BASE}/reports/save`, {
+          filename,
+          content: generatePdfText(LATEST_ALARM),
+          metadata: {
+            date: LATEST_ALARM.date,
+            eqp: LATEST_ALARM.eqp,
+            kpi: LATEST_ALARM.kpi,
+          },
+        });
+        console.log(`PDF 저장 완료: data/reports/${filename}`);
+      } catch (e: any) {
+        // 이미 존재(409)는 무시, 나머지 오류만 출력
+        if (e?.response?.status !== 409) {
+          console.error('PDF 저장 실패:', e);
+        }
+      }
+
+      // 2. 과거이력 React 상태 업데이트
       const newEntry: AlarmReport = {
         ...LATEST_ALARM,
         id: `RPT-${String(historyList.length + 1).padStart(3, '0')}`,
@@ -292,8 +319,26 @@ const AlarmCenter: React.FC = () => {
   };
 
   // ── 초기화 버튼 ──
-  const handleReset = () => {
+  const handleReset = async () => {
     if (window.confirm('초기화하면 추가된 이력이 삭제됩니다. 계속하시겠습니까?')) {
+      // 1. 백엔드에서 PDF 파일 실제 삭제 (latestSaved 무관하게 항상 시도)
+      const filename = getPdfFilename(LATEST_ALARM);
+      try {
+        await axios.delete(`${API_BASE}/reports/${filename}`);
+        console.log(`PDF 삭제 완료: data/reports/${filename}`);
+      } catch (e: any) {
+        const status = e?.response?.status;
+        if (status === 404) {
+          // 이미 없음 → 정상
+          console.log(`파일 없음 (이미 삭제됨): ${filename}`);
+        } else {
+          // 실제 오류는 알림
+          console.error('PDF 삭제 실패:', e);
+          alert(`PDF 삭제 실패: ${e?.response?.data?.detail || e.message}`);
+        }
+      }
+
+      // 2. React 상태 초기화
       setHistoryList(INITIAL_HISTORY);
       setLatestSaved(false);
     }
@@ -340,9 +385,9 @@ const AlarmCenter: React.FC = () => {
           onClick={handleReset}
           style={{
             marginLeft: 'auto',
-            padding: '8px 16px', borderRadius: '8px',
+            padding: '8px 18px', borderRadius: '8px',
             border: '1px solid #d1d5db', background: '#fff',
-            color: '#6b7280', fontSize: '13px', cursor: 'pointer',
+            color: '#6b7280', fontSize: '14px', fontWeight: 300, cursor: 'pointer',
           }}
         >
           🔄 초기화
@@ -465,9 +510,9 @@ const AlarmCenter: React.FC = () => {
             <button
               onClick={handleGeneratePdf}
               style={{
-                padding: '12px 28px', borderRadius: '8px', border: 'none',
+                padding: '7px 14px', borderRadius: '6px', border: 'none',
                 background: latestSaved ? '#6b7280' : '#3b82f6',
-                color: '#fff', fontWeight: 700, fontSize: '14px', cursor: 'pointer',
+                color: '#fff', fontWeight: 600, fontSize: '12px', cursor: 'pointer',
               }}
             >
               📄 PDF 보고서 생성

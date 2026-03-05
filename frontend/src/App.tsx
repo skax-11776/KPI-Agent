@@ -8,7 +8,7 @@
 // ================================================================
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
-// ────────────────────────── 타입 ──────────────────────────
+// 타입
 interface Report {
   id: number; filename: string; date: string; time: string;
   eqp_id: string; line_id: string; oper_id: string; alarm_kpi: string;
@@ -119,72 +119,6 @@ const REPORTS: Report[] = [
    pdf_raw:{basic_info:"날짜: 2026-01-30 | 시간: 22:51 | 장비: EQP11 | 라인: LINE3 | 공정: OPER1",problem:"문제 KPI: OEE\n목표치: 70.0% | 실제치: 50.56% | 차이: -19.44%",root_cause:"1. 장비 다운타임 3시간 발생 (01:25~04:25)\n2. RCP01 레시피 실행 중 HOLD 상태 발생\n3. 복잡도 높은 레시피(9/10) 사용으로 인한 처리 시간 증가",scenario:"1. 장비 긴급 점검 및 유지보수 실시\n2. 다운타임 발생 원인 파악 (센서 오류)\n3. 레시피 파라미터 조정 (복잡도 낮은 RCP02로 전환)\n4. 예방 정비 스케줄 재조정",result:"OEE 회복: 50.56% → 70.0% (다음날 예상)\n다운타임 제로화\n예상 손실 비용: 약 500만원 절감"}},
 ];
 
-// ────────────────────────── DB 원본 데이터 샘플 ──────────────────────────
-const DB_KPI_DAILY = [
-  {date:"2026-01-20",eqp_id:"EQP01",line_id:"LINE1",oper_id:"OPER1",oee_t:70,oee_v:53.51,thp_t:175,thp_v:175,good_out_qty:175,tat_t:3.5,tat_v:3.02,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-21",eqp_id:"EQP02",line_id:"LINE1",oper_id:"OPER1",oee_t:70,oee_v:76.44,thp_t:250,thp_v:228,good_out_qty:228,tat_t:3.5,tat_v:2.27,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-22",eqp_id:"EQP03",line_id:"LINE1",oper_id:"OPER1",oee_t:70,oee_v:76.44,thp_t:250,thp_v:240,good_out_qty:240,tat_t:3.5,tat_v:4.10,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-23",eqp_id:"EQP04",line_id:"LINE1",oper_id:"OPER2",oee_t:70,oee_v:76.44,thp_t:250,thp_v:250,good_out_qty:250,tat_t:3.5,tat_v:2.17,wip_t:250,wip_v:670,alarm_flag:1},
-  {date:"2026-01-24",eqp_id:"EQP05",line_id:"LINE1",oper_id:"OPER2",oee_t:70,oee_v:76.44,thp_t:250,thp_v:250,good_out_qty:250,tat_t:3.5,tat_v:2.17,wip_t:250,wip_v:218,alarm_flag:1},
-  {date:"2026-01-25",eqp_id:"EQP06",line_id:"LINE1",oper_id:"OPER2",oee_t:70,oee_v:56.48,thp_t:250,thp_v:250,good_out_qty:250,tat_t:3.5,tat_v:2.17,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-26",eqp_id:"EQP07",line_id:"LINE2",oper_id:"OPER3",oee_t:70,oee_v:76.44,thp_t:250,thp_v:232,good_out_qty:232,tat_t:3.5,tat_v:2.17,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-27",eqp_id:"EQP08",line_id:"LINE2",oper_id:"OPER3",oee_t:70,oee_v:76.44,thp_t:250,thp_v:250,good_out_qty:250,tat_t:3.5,tat_v:4.25,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-28",eqp_id:"EQP09",line_id:"LINE2",oper_id:"OPER3",oee_t:70,oee_v:76.44,thp_t:250,thp_v:250,good_out_qty:250,tat_t:3.5,tat_v:2.17,wip_t:250,wip_v:730,alarm_flag:1},
-  {date:"2026-01-29",eqp_id:"EQP10",line_id:"LINE2",oper_id:"OPER4",oee_t:70,oee_v:76.44,thp_t:250,thp_v:250,good_out_qty:250,tat_t:3.5,tat_v:2.17,wip_t:250,wip_v:295,alarm_flag:1},
-  {date:"2026-01-30",eqp_id:"EQP11",line_id:"LINE2",oper_id:"OPER4",oee_t:70,oee_v:50.56,thp_t:250,thp_v:175,good_out_qty:175,tat_t:3.5,tat_v:3.02,wip_t:250,wip_v:250,alarm_flag:1},
-  {date:"2026-01-31",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",oee_t:70,oee_v:76.44,thp_t:250,thp_v:227,good_out_qty:227,tat_t:3.5,tat_v:2.27,wip_t:250,wip_v:250,alarm_flag:1},
-];
-const DB_SCENARIO_MAP = [
-  {date:"2026-01-20",alarm_eqp_id:"EQP01",alarm_kpi:"OEE"},
-  {date:"2026-01-21",alarm_eqp_id:"EQP02",alarm_kpi:"THP"},
-  {date:"2026-01-22",alarm_eqp_id:"EQP03",alarm_kpi:"TAT"},
-  {date:"2026-01-23",alarm_eqp_id:"EQP04",alarm_kpi:"WIP_EXCEED"},
-  {date:"2026-01-24",alarm_eqp_id:"EQP05",alarm_kpi:"WIP_SHORTAGE"},
-  {date:"2026-01-25",alarm_eqp_id:"EQP06",alarm_kpi:"OEE"},
-  {date:"2026-01-26",alarm_eqp_id:"EQP07",alarm_kpi:"THP"},
-  {date:"2026-01-27",alarm_eqp_id:"EQP08",alarm_kpi:"TAT"},
-  {date:"2026-01-28",alarm_eqp_id:"EQP09",alarm_kpi:"WIP_EXCEED"},
-  {date:"2026-01-29",alarm_eqp_id:"EQP10",alarm_kpi:"WIP_SHORTAGE"},
-  {date:"2026-01-30",alarm_eqp_id:"EQP11",alarm_kpi:"OEE"},
-  {date:"2026-01-31",alarm_eqp_id:"EQP12",alarm_kpi:"THP"},
-];
-const DB_RCP_STATE = [
-  {rcp_id:"RCP01",eqp_id:"EQP01",complex_level:9},{rcp_id:"RCP02",eqp_id:"EQP01",complex_level:4},
-  {rcp_id:"RCP03",eqp_id:"EQP02",complex_level:3},{rcp_id:"RCP04",eqp_id:"EQP02",complex_level:8},
-  {rcp_id:"RCP05",eqp_id:"EQP03",complex_level:5},{rcp_id:"RCP06",eqp_id:"EQP03",complex_level:6},
-  {rcp_id:"RCP07",eqp_id:"EQP04",complex_level:3},{rcp_id:"RCP08",eqp_id:"EQP04",complex_level:5},
-  {rcp_id:"RCP09",eqp_id:"EQP05",complex_level:8},{rcp_id:"RCP10",eqp_id:"EQP05",complex_level:5},
-  {rcp_id:"RCP11",eqp_id:"EQP06",complex_level:9},{rcp_id:"RCP12",eqp_id:"EQP06",complex_level:9},
-  {rcp_id:"RCP13",eqp_id:"EQP07",complex_level:8},{rcp_id:"RCP14",eqp_id:"EQP07",complex_level:10},
-  {rcp_id:"RCP15",eqp_id:"EQP08",complex_level:8},{rcp_id:"RCP16",eqp_id:"EQP08",complex_level:4},
-  {rcp_id:"RCP17",eqp_id:"EQP09",complex_level:9},{rcp_id:"RCP18",eqp_id:"EQP09",complex_level:8},
-  {rcp_id:"RCP19",eqp_id:"EQP10",complex_level:3},{rcp_id:"RCP20",eqp_id:"EQP10",complex_level:5},
-  {rcp_id:"RCP21",eqp_id:"EQP11",complex_level:4},{rcp_id:"RCP22",eqp_id:"EQP11",complex_level:10},
-  {rcp_id:"RCP23",eqp_id:"EQP12",complex_level:8},{rcp_id:"RCP24",eqp_id:"EQP12",complex_level:10},
-];
-const DB_EQP_STATE = [
-  {event_time:"2026-01-31 00:00",end_time:"2026-01-31 00:30",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"-",rcp_id:"-",eqp_state:"IDLE"},
-  {event_time:"2026-01-31 00:30",end_time:"2026-01-31 01:25",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02864",rcp_id:"RCP23",eqp_state:"RUN"},
-  {event_time:"2026-01-31 01:25",end_time:"2026-01-31 01:40",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02864",rcp_id:"RCP23",eqp_state:"DOWN"},
-  {event_time:"2026-01-31 01:40",end_time:"2026-01-31 02:35",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02864",rcp_id:"RCP23",eqp_state:"RUN"},
-  {event_time:"2026-01-31 02:35",end_time:"2026-01-31 02:40",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"-",rcp_id:"-",eqp_state:"IDLE"},
-  {event_time:"2026-01-31 02:40",end_time:"2026-01-31 03:35",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02865",rcp_id:"RCP24",eqp_state:"RUN"},
-  {event_time:"2026-01-31 03:35",end_time:"2026-01-31 03:50",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02865",rcp_id:"RCP24",eqp_state:"DOWN"},
-  {event_time:"2026-01-31 03:50",end_time:"2026-01-31 04:45",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02865",rcp_id:"RCP24",eqp_state:"RUN"},
-  {event_time:"2026-01-31 05:45",end_time:"2026-01-31 06:00",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02866",rcp_id:"RCP23",eqp_state:"DOWN"},
-  {event_time:"2026-01-31 07:55",end_time:"2026-01-31 08:10",eqp_id:"EQP12",line_id:"LINE2",oper_id:"OPER4",lot_id:"LOT_20260131_02867",rcp_id:"RCP24",eqp_state:"DOWN"},
-];
-const DB_LOT_STATE = [
-  {event_time:"2026-01-31 00:10",lot_id:"LOT_20260131_02864",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP23",lot_state:"WAIT",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-  {event_time:"2026-01-31 00:30",lot_id:"LOT_20260131_02864",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP23",lot_state:"RUN",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-  {event_time:"2026-01-31 01:25",lot_id:"LOT_20260131_02864",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP23",lot_state:"HOLD",in_cnt:25,hold_cnt:1,scrap_cnt:0},
-  {event_time:"2026-01-31 01:40",lot_id:"LOT_20260131_02864",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP23",lot_state:"RUN",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-  {event_time:"2026-01-31 02:35",lot_id:"LOT_20260131_02864",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP23",lot_state:"END",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-  {event_time:"2026-01-31 02:40",lot_id:"LOT_20260131_02865",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP24",lot_state:"RUN",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-  {event_time:"2026-01-31 03:35",lot_id:"LOT_20260131_02865",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP24",lot_state:"HOLD",in_cnt:25,hold_cnt:1,scrap_cnt:0},
-  {event_time:"2026-01-31 03:50",lot_id:"LOT_20260131_02865",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP24",lot_state:"RUN",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-  {event_time:"2026-01-31 04:45",lot_id:"LOT_20260131_02865",line_id:"LINE2",oper_id:"OPER4",eqp_id:"EQP12",rcp_id:"RCP24",lot_state:"END",in_cnt:25,hold_cnt:0,scrap_cnt:0},
-];
 
 // ────────────────────────── 유틸 함수 ──────────────────────────
 function getRate(r:Report):number {
@@ -245,7 +179,7 @@ async function callLLM(messages:{role:string;content:string}[]):Promise<{text:st
   // 백엔드 FastAPI 서버 경유 (AWS Bedrock 사용)
   // 백엔드: backend/api/main.py 실행 필요
   try {
-    const res = await fetch("http://localhost:8000/api/chat", {
+    const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -429,7 +363,7 @@ function ReportPanel({report,onClose}:{report:Report;onClose:()=>void}) {
     </div>
   );
 }
-const API_BASE = "http://localhost:8000";
+const API_BASE = "";
 
 // 백엔드에서 PDF 목록 가져오기
 async function fetchReportList(): Promise<{filename:string;size:number;created_at:string}[]> {
@@ -590,9 +524,37 @@ function AnalyticsPage({reports}: {reports: any[]}) {
   );
 }
 
-function SettingsPage() {
-  const [thresholds, setThresholds] = React.useState({oee_min:70,thp_min:250,tat_max:3.5,wip_min:200,wip_max:300});
+type Thresholds = {oee_min:number;thp_min:number;tat_max:number;wip_min:number;wip_max:number};
+
+function SettingsPage({thresholds,setThresholds}:{thresholds:Thresholds;setThresholds:React.Dispatch<React.SetStateAction<Thresholds>>}) {
   const [saved, setSaved] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState("");
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError("");
+    try {
+      const res = await fetch("/api/system/settings/targets", {
+        method: "PUT",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(thresholds),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({detail:`HTTP ${res.status}`}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "업데이트 실패");
+      setSaved(true);
+      setTimeout(()=>setSaved(false), 2000);
+    } catch(e: any) {
+      setSaveError(e.message || "저장 실패");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div style={{padding:"24px 32px",maxWidth:600}}>
       <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"24px 28px",marginBottom:20}}>
@@ -614,18 +576,20 @@ function SettingsPage() {
             </div>
           </div>
         ))}
-        <button onClick={()=>{setSaved(true);setTimeout(()=>setSaved(false),2000);}}
-          style={{width:"100%",padding:"12px",borderRadius:8,border:"none",background:saved?"#22c55e":"#0f172a",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
-          {saved?"✅ 저장되었습니다!":"설정 저장"}
+        <button onClick={handleSave} disabled={saving}
+          style={{width:"100%",padding:"12px",borderRadius:8,border:"none",background:saved?"#22c55e":saveError?"#dc2626":"#0f172a",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+          {saved?"저장되었습니다!":saving?"저장 중...":"설정 저장"}
         </button>
+        {saveError&&<div style={{marginTop:8,fontSize:12,color:"#dc2626",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:6,padding:"6px 10px"}}>{saveError}</div>}
       </div>
+
       <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"20px 24px"}}>
         <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>시스템 정보</div>
         {[
           {label:"백엔드 서버",value:"http://localhost:8000"},
           {label:"LLM 모델",value:"AWS Bedrock / Claude Haiku"},
-          {label:"Vector DB",value:"ChromaDB · ./data/chromadb"},
-          {label:"관계형 DB",value:"Supabase PostgreSQL"},
+          {label:"Vector DB",value:"ChromaDB · ./backend/data/chromadb"},
+          {label:"관계형 DB",value:"Amazon RDS (PostgreSQL)"},
           {label:"보고서 폴더",value:"./backend/data/reports/"},
         ].map(({label,value})=>(
           <div key={label} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f3f4f6"}}>
@@ -645,6 +609,7 @@ export default function App() {
 
   const [activeTab, setActiveTab]     = useState<Tab>("dashboard");
   const [alarmSub,  setAlarmSub]      = useState<AlarmSub>("latest");
+  const [thresholds, setThresholds]   = useState<Thresholds>({oee_min:70,thp_min:250,tat_max:3.5,wip_min:200,wip_max:300});
   const [dbTable,   setDbTable]       = useState<DbTable>("kpi_daily");
   const [selReport, setSelReport]     = useState<Report|null>(null);
   const [latestSaved, setLatestSaved] = useState(false);
@@ -660,6 +625,13 @@ export default function App() {
   const [dbRcpData, setDbRcpData] = useState<any[]>([]);
   const [dbScenarioData, setDbScenarioData] = useState<any[]>([]);
   const [dashboardSummary, setDashboardSummary] = useState<any>(null);
+  const [dbFilterDate, setDbFilterDate] = useState<string>("all");
+  const [dbFilterEqp,  setDbFilterEqp]  = useState<string>("all");
+  const [dbPage,       setDbPage]       = useState<number>(1);
+  const [dbEqpTotal,   setDbEqpTotal]   = useState<number>(0);
+  const [dbLotTotal,   setDbLotTotal]   = useState<number>(0);
+  const [dbLoading,    setDbLoading]    = useState<boolean>(false);
+  const [dbError,      setDbError]      = useState<string|null>(null);
 
 // PDF 목록 로드 (컴포넌트 마운트 시 + 저장/삭제 후)
 useEffect(()=>{
@@ -669,36 +641,14 @@ useEffect(()=>{
   }, 5000);  // 5초마다 폴더 스캔
   return () => clearInterval(interval);
 }, []);
-// Supabase 데이터 로드
+// 대시보드 요약 로드 (마운트 시 1회)
 useEffect(()=>{
-  fetch("http://localhost:8000/api/dashboard-summary")
+  fetch("/api/rds/kpi-daily")
     .then(r=>r.json())
-    .then(d=>{ if(d.success) setDashboardSummary(d.latest); })
-    .catch(()=>{});
-
-  fetch("http://localhost:8000/api/kpi-daily")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbKpiData(d.data); })
-    .catch(()=>{});
-
-  fetch("http://localhost:8000/api/scenario-map")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbScenarioData(d.data); })
-    .catch(()=>{});
-
-  fetch("http://localhost:8000/api/lot-state")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbLotData(d.data); })
-    .catch(()=>{});
-
-  fetch("http://localhost:8000/api/eqp-state")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbEqpData(d.data); })
-    .catch(()=>{});
-
-  fetch("http://localhost:8000/api/rcp-state")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbRcpData(d.data); })
+    .then(d=>{ if(d.success && d.data?.length>0) {
+      const sorted=[...d.data].sort((a:any,b:any)=>b.date?.localeCompare(a.date));
+      setDashboardSummary(sorted[0]);
+    }})
     .catch(()=>{});
 }, []);
 
@@ -714,19 +664,19 @@ useEffect(()=>{
   const chatEnd = useRef<HTMLDivElement>(null);
 
   // 실시간 KPI
-  const [kpi, setKpi] = useState<LiveKPI>({oee:68.3,thp:229,tat:2.47,wip:256,oee_prev:68.6,thp_prev:231,tat_prev:2.45,wip_prev:255});
+  const [kpi, setKpi] = useState<LiveKPI>({oee:70,thp:229,tat:2.47,wip:256,oee_prev:70,thp_prev:231,tat_prev:2.45,wip_prev:255});
   const [rt,  setRt]  = useState<RealtimePoint[]>([]);
   const chartRef = useRef<HTMLDivElement>(null);
   const [chartW, setChartW] = useState(900);
 
   useEffect(()=>{
-    setRt(Array.from({length:60},()=>({time:nowTime(),oee:jitter(68,8),thp:Math.round(jitter(235,20)),tat:jitter(2.5,0.5),wip:Math.round(jitter(250,20))})));
+    setRt(Array.from({length:60},()=>({time:nowTime(),oee:jitter(74,8),thp:Math.round(jitter(235,20)),tat:jitter(2.5,0.5),wip:Math.round(jitter(250,20))})));
   },[]);
 
   useEffect(()=>{
     const iv=setInterval(()=>{
-      setKpi(p=>{const o=jitter(p.oee,1.2),t=Math.round(jitter(p.thp,4)),ta=jitter(p.tat,0.08),w=Math.round(jitter(p.wip,6));return{oee:o,thp:t,tat:ta,wip:w,oee_prev:p.oee,thp_prev:p.thp,tat_prev:p.tat,wip_prev:p.wip};});
-      setRt(p=>[...p.slice(-59),{time:nowTime(),oee:jitter(68,8),thp:Math.round(jitter(235,20)),tat:jitter(2.5,0.5),wip:Math.round(jitter(250,20))}]);
+      setKpi(p=>{const o=jitter(74,8),t=Math.round(jitter(p.thp,4)),ta=jitter(p.tat,0.08),w=Math.round(jitter(p.wip,6));return{oee:o,thp:t,tat:ta,wip:w,oee_prev:p.oee,thp_prev:p.thp,tat_prev:p.tat,wip_prev:p.wip};});
+      setRt(p=>[...p.slice(-59),{time:nowTime(),oee:jitter(74,8),thp:Math.round(jitter(235,20)),tat:jitter(2.5,0.5),wip:Math.round(jitter(250,20))}]);
     },500);
     return()=>clearInterval(iv);
   },[]);
@@ -745,37 +695,36 @@ useEffect(()=>{
 
   useEffect(()=>{ chatEnd.current?.scrollIntoView({behavior:"smooth"}); },[msgs]);
 
-  useEffect(()=>{
-  // 대시보드 요약
-  fetch("http://localhost:8000/api/dashboard-summary")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDashboardSummary(d.latest); })
-    .catch(()=>{});
+// Database 탭 - 테이블 전환 시 RDS에서 데이터 로드
+useEffect(()=>{
+  setDbLoading(true);
+  setDbError(null);
+  setDbFilterDate("all");
+  setDbFilterEqp("all");
+  setDbPage(1);
 
-  // KPI 전체 데이터
-  fetch("http://localhost:8000/api/kpi-daily")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbKpiData(d.data); })
-    .catch(()=>{});
+  const endpoints: Record<string, string> = {
+    kpi_daily:    "/api/rds/kpi-daily",
+    scenario_map: "/api/rds/scenario-map",
+    rcp_state:    "/api/rds/rcp-state",
+    eqp_state:    "/api/rds/eqp-state",
+    lot_state:    "/api/rds/lot-state",
+  };
 
-  // LOT 데이터
-  fetch("http://localhost:8000/api/lot-state")
+  fetch(endpoints[dbTable])
     .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbLotData(d.data); })
-    .catch(()=>{});
-
-  // EQP 데이터
-  fetch("http://localhost:8000/api/eqp-state")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbEqpData(d.data); })
-    .catch(()=>{});
-
-  // RCP 데이터
-  fetch("http://localhost:8000/api/rcp-state")
-    .then(r=>r.json())
-    .then(d=>{ if(d.success) setDbRcpData(d.data); })
-    .catch(()=>{});
-}, []);
+    .then(d=>{
+      if(!d.success) throw new Error(d.error||d.detail||"조회 실패");
+      const rows = d.data || [];
+      if      (dbTable==="kpi_daily")    { setDbKpiData(rows); }
+      else if (dbTable==="scenario_map") { setDbScenarioData(rows); }
+      else if (dbTable==="rcp_state")    { setDbRcpData(rows); }
+      else if (dbTable==="eqp_state")    { setDbEqpData(rows); setDbEqpTotal(d.count||rows.length); }
+      else if (dbTable==="lot_state")    { setDbLotData(rows); setDbLotTotal(d.count||rows.length); }
+    })
+    .catch(e=>{ setDbError(e.message||"백엔드 연결 실패"); })
+    .finally(()=>{ setDbLoading(false); });
+}, [dbTable]);
 
   // LLM 전송
   const handleSend = useCallback(async()=>{
@@ -800,6 +749,35 @@ useEffect(()=>{
     const up=cur>prev; const good=inv?!up:up;
     return{arrow:up?"▲":"▼",color:good?"#16a34a":"#dc2626",val:Math.abs(cur-prev).toFixed(2)};
   };
+
+  // ── DB 필터 헬퍼 ──────────────────────────────────────────────
+  const activeDbData =
+    dbTable==="kpi_daily"    ? dbKpiData :
+    dbTable==="scenario_map" ? dbScenarioData :
+    dbTable==="rcp_state"    ? dbRcpData :
+    dbTable==="eqp_state"    ? dbEqpData :
+                               dbLotData;
+  const dbGetDate=(row:any):string|null=>
+    dbTable==="kpi_daily"||dbTable==="scenario_map" ? (row.date??null) :
+    dbTable==="eqp_state"||dbTable==="lot_state"    ? (row.event_time?.slice(0,10)??null) : null;
+  const dbGetEqp=(row:any):string|null=>
+    dbTable==="scenario_map" ? (row.alarm_eqp_id??null) : (row.eqp_id??null);
+  const isPaged = dbTable==="eqp_state"||dbTable==="lot_state";
+  // RDS에서 전체 데이터 로드 → 모든 테이블 클라이언트 필터 적용
+  const filteredDbData = activeDbData.filter(row=>{
+    const dOk=dbFilterDate==="all"||dbGetDate(row)===dbFilterDate;
+    const eOk=dbFilterEqp==="all"||dbGetEqp(row)===dbFilterEqp;
+    return dOk&&eOk;
+  });
+  // 드롭다운 옵션: 로드된 데이터에서 추출
+  const dbUniqDates=Array.from(new Set(activeDbData.map(dbGetDate).filter(Boolean) as string[])).sort();
+  const dbUniqEqps =Array.from(new Set(activeDbData.map(dbGetEqp).filter(Boolean) as string[])).sort();
+  const filterDates = dbUniqDates;
+  const filterEqps  = dbUniqEqps;
+  const DB_PAGE_SIZE = 200;
+  const dbTotalCount = dbTable==="eqp_state" ? dbEqpTotal : dbTable==="lot_state" ? dbLotTotal : filteredDbData.length;
+  const dbTotalPages = isPaged ? Math.max(1, Math.ceil(filteredDbData.length / DB_PAGE_SIZE)) : 1;
+  const pagedDbData  = isPaged ? filteredDbData.slice((dbPage-1)*DB_PAGE_SIZE, dbPage*DB_PAGE_SIZE) : filteredDbData;
 
   const NAV_ITEMS = [
   {id:"dashboard" as Tab, label:"Dashboard",    desc:"실시간 현황",    icon:"📊"},
@@ -864,17 +842,17 @@ useEffect(()=>{
          activeTab==="alarms"?"최신 알람(2026-01-31) / 과거 이력 PDF 11건":
          activeTab==="chat"?"AWS Bedrock Claude Haiku · RAG(ChromaDB) 기반 분석":
          activeTab==="analytics"?"KPI 장기 트렌드 · 알람 패턴 분석":
-         activeTab==="settings"?"알람 임계값 · 알림 설정":"Supabase PostgreSQL · 5개 테이블"}
+         activeTab==="settings"?"알람 임계값 · 알림 설정":"Amazon RDS (PostgreSQL) · 5개 테이블"}
       </p>
     </div>
   </div>
   <div style={{display:"flex",alignItems:"center",gap:10}}>
     
     {[
-  {label:"OEE", val:`${(dashboardSummary?.oee_v ?? kpi.oee).toFixed(1)}%`, bad:(dashboardSummary?.oee_v ?? kpi.oee)<70, color:"#2563eb"},
-  {label:"THP", val:String(dashboardSummary?.thp_v ?? kpi.thp), bad:(dashboardSummary?.thp_v ?? kpi.thp)<228, color:"#059669"},
-  {label:"TAT", val:`${(dashboardSummary?.tat_v ?? kpi.tat).toFixed(2)}h`, bad:(dashboardSummary?.tat_v ?? kpi.tat)>3.5, color:"#d97706"},
-  {label:"WIP", val:String(dashboardSummary?.wip_v ?? kpi.wip), bad:false, color:"#7c3aed"},
+  {label:"OEE", val:`${kpi.oee.toFixed(1)}%`, bad:kpi.oee<thresholds.oee_min, color:"#2563eb"},
+  {label:"THP", val:String(kpi.thp), bad:kpi.thp<thresholds.thp_min, color:"#059669"},
+  {label:"TAT", val:`${kpi.tat.toFixed(2)}h`, bad:kpi.tat>thresholds.tat_max, color:"#d97706"},
+  {label:"WIP", val:String(kpi.wip), bad:kpi.wip<thresholds.wip_min||kpi.wip>thresholds.wip_max, color:"#7c3aed"},
 ].map(({label,val,bad,color})=>(
   <div key={label} style={{
     padding:"5px 12px", borderRadius:8,
@@ -898,10 +876,10 @@ useEffect(()=>{
             <SL>실시간 KPI 현황</SL>
             <div style={S.rtGrid}>
               {([
-                {label:"OEE",sub:"Overall Equipment Effectiveness",val:`${kpi.oee.toFixed(1)}%`,cur:kpi.oee,prev:kpi.oee_prev,tgt:"목표 70%",bad:kpi.oee<70,inv:false},
-                {label:"THP",sub:"Throughput (UPH)",val:String(kpi.thp),cur:kpi.thp,prev:kpi.thp_prev,tgt:"목표 250",bad:kpi.thp<228,inv:false},
-                {label:"TAT",sub:"Turn-Around Time",val:`${kpi.tat.toFixed(2)}h`,cur:kpi.tat,prev:kpi.tat_prev,tgt:"목표 <3.5h",bad:kpi.tat>3.5,inv:true},
-                {label:"WIP",sub:"Work In Process",val:String(kpi.wip),cur:kpi.wip,prev:kpi.wip_prev,tgt:"목표 250EA",bad:false,inv:false},
+                {label:"OEE",sub:"Overall Equipment Effectiveness",val:`${kpi.oee.toFixed(1)}%`,cur:kpi.oee,prev:kpi.oee_prev,tgt:`목표 ${thresholds.oee_min}%`,bad:kpi.oee<thresholds.oee_min,inv:false},
+                {label:"THP",sub:"Throughput (UPH)",val:String(kpi.thp),cur:kpi.thp,prev:kpi.thp_prev,tgt:`목표 ${thresholds.thp_min}`,bad:kpi.thp<thresholds.thp_min,inv:false},
+                {label:"TAT",sub:"Turn-Around Time",val:`${kpi.tat.toFixed(2)}h`,cur:kpi.tat,prev:kpi.tat_prev,tgt:`목표 <${thresholds.tat_max}h`,bad:kpi.tat>thresholds.tat_max,inv:true},
+                {label:"WIP",sub:"Work In Process",val:String(kpi.wip),cur:kpi.wip,prev:kpi.wip_prev,tgt:`목표 ${thresholds.wip_min}~${thresholds.wip_max}EA`,bad:kpi.wip<thresholds.wip_min||kpi.wip>thresholds.wip_max,inv:false},
               ]).map((c,i)=>{
                 const d=delta(c.cur,c.prev,c.inv);
                 return(
@@ -1032,12 +1010,13 @@ useEffect(()=>{
                 <div style={{borderTop:"1px solid #f3f4f6",paddingTop:16,marginTop:8,display:"flex",gap:12,alignItems:"center"}}>
                   <button
                     onClick={()=>setShowPdfModal(true)}
-                    style={{padding:"10px 22px",borderRadius:8,border:"none",background:"#2563eb",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}
+                    style={{padding:"7px 14px",borderRadius:6,border:"none",background:"#2563eb",color:"#fff",fontWeight:600,fontSize:13,cursor:"pointer"}}
                   >
-                    📄 PDF 보고서 생성
+                    PDF 보고서 생성
                   </button>
                   {latestSaved&&<span style={{color:"#16a34a",fontWeight:600,fontSize:13}}>✅ RAG에 저장됨</span>}
                   <button
+                    style={{padding:"6px 12px",borderRadius:6,border:"1px solid #d1d5db",background:"#fff",color:"#6b7280",fontWeight:600,fontSize:13,cursor:"pointer"}}
                     onClick={async ()=>{
                     if(window.confirm("초기화하면 추가된 보고서 파일도 삭제됩니다. 계속하시겠습니까?")){
                       // 추가된 파일만 삭제 (기존 11개 제외)
@@ -1051,14 +1030,14 @@ useEffect(()=>{
                     }
                   }}
                   >
-                    🔄 초기화
+                    초기화
                   </button>
                 </div>
 
             {/* 과거 이력 */}
             {alarmSub==="history"&&(
               <div>
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"10px 16px",background:"#ede9fe",border:"1px solid #c4b5fd",borderRadius:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginTop:16,marginBottom:16,padding:"10px 16px",background:"#ede9fe",border:"1px solid #c4b5fd",borderRadius:8}}>
                   <span style={{fontSize:11,fontWeight:700,color:"#5b21b6",letterSpacing:0.5}}>RAG DB</span>
                   <span style={{fontSize:13,color:"#4c1d95"}}>ChromaDB에 인덱싱된 PDF 리포트 11건 — 클릭 시 PDF 원본 내용을 확인할 수 있습니다</span>
                 </div>
@@ -1170,31 +1149,92 @@ useEffect(()=>{
         {activeTab==="database"&&(
           <div style={S.content}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20,padding:"12px 16px",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8}}>
-              <span style={{fontSize:11,fontWeight:700,color:"#166534",letterSpacing:0.5}}>Supabase PostgreSQL</span>
+              <span style={{fontSize:11,fontWeight:700,color:"#166534",letterSpacing:0.5}}>Amazon RDS (PostgreSQL)</span>
               <span style={{fontSize:13,color:"#166534"}}>5개 테이블 원본 데이터 · 읽기 전용</span>
             </div>
             {/* 테이블 탭 */}
             <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap" as const}}>
               {([
-                {id:"kpi_daily"    as DbTable,label:"KPI_DAILY",    rows:"144"},
-                {id:"scenario_map" as DbTable,label:"SCENARIO_MAP", rows:"12"},
-                {id:"rcp_state"    as DbTable,label:"RCP_STATE",    rows:"24"},
-                {id:"eqp_state"    as DbTable,label:"EQP_STATE",    rows:"3,042"},
-                {id:"lot_state"    as DbTable,label:"LOT_STATE",    rows:"5,771"},
+                {id:"kpi_daily"    as DbTable,label:"KPI_DAILY",    rows: dbKpiData.length>0      ? dbKpiData.length.toLocaleString()      : "144"},
+                {id:"scenario_map" as DbTable,label:"SCENARIO_MAP", rows: dbScenarioData.length>0 ? dbScenarioData.length.toLocaleString() : "12"},
+                {id:"rcp_state"    as DbTable,label:"RCP_STATE",    rows: dbRcpData.length>0      ? dbRcpData.length.toLocaleString()      : "24"},
+                {id:"eqp_state"    as DbTable,label:"EQP_STATE",    rows: dbEqpTotal>0            ? dbEqpTotal.toLocaleString()            : "3,042"},
+                {id:"lot_state"    as DbTable,label:"LOT_STATE",    rows: dbLotTotal>0            ? dbLotTotal.toLocaleString()            : "5,771"},
               ]).map(t=>(
-                <button key={t.id} style={{...S.filterBtn,...(dbTable===t.id?S.filterBtnOn:{})}} onClick={()=>setDbTable(t.id)}>
+                <button key={t.id} style={{...S.filterBtn,...(dbTable===t.id?S.filterBtnOn:{})}} onClick={()=>{setDbTable(t.id);setDbFilterDate("all");setDbFilterEqp("all");setDbPage(1);}}>
                   {t.label}
                   <span style={{fontSize:10,padding:"1px 5px",borderRadius:8,background:dbTable===t.id?"rgba(255,255,255,0.2)":"#e5e7eb",color:dbTable===t.id?"#fff":"#6b7280",marginLeft:5}}>{t.rows}</span>
                 </button>
               ))}
             </div>
 
+            {/* 로딩 / 에러 상태 */}
+            {dbLoading && (
+              <div style={{textAlign:"center" as const,padding:"32px",color:"#6b7280",fontSize:13}}>
+                데이터 불러오는 중...
+              </div>
+            )}
+            {!dbLoading && dbError && (
+              <div style={{padding:"14px 18px",marginBottom:16,background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,color:"#dc2626",fontSize:13}}>
+                <strong>연결 오류:</strong> {dbError}
+                <div style={{marginTop:6,fontSize:11,color:"#9ca3af"}}>
+                  로컬 개발 시: <code>kubectl port-forward svc/kpi-backend 8000:8000 -n team-4</code> 실행 후 새로고침
+                </div>
+              </div>
+            )}
+
+            {/* 날짜 · EQP 필터 바 */}
+            {!dbLoading && !dbError && (
+            <div style={{display:"flex",gap:12,marginBottom:16,alignItems:"center",flexWrap:"wrap" as const,padding:"10px 14px",background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:8}}>
+              {dbTable!=="rcp_state"&&(
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:12,color:"#6b7280",fontWeight:600}}>날짜</span>
+                  <select value={dbFilterDate}
+                    onChange={e=>{setDbFilterDate(e.target.value); if(isPaged) setDbPage(1);}}
+                    style={{fontSize:12,padding:"4px 10px",border:"1px solid #e5e7eb",borderRadius:6,fontFamily:"Pretendard, sans-serif",background:"#fff",color:"#374151",outline:"none"}}>
+                    <option value="all">전체</option>
+                    {filterDates.map(d=><option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              )}
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:12,color:"#6b7280",fontWeight:600}}>EQP</span>
+                <select value={dbFilterEqp}
+                  onChange={e=>{setDbFilterEqp(e.target.value); if(isPaged) setDbPage(1);}}
+                  style={{fontSize:12,padding:"4px 10px",border:"1px solid #e5e7eb",borderRadius:6,fontFamily:"Pretendard, sans-serif",background:"#fff",color:"#374151",outline:"none"}}>
+                  <option value="all">전체</option>
+                  {filterEqps.map(e=><option key={e} value={e}>{e}</option>)}
+                </select>
+              </div>
+              <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:11,color:"#9ca3af"}}>
+                  {filteredDbData.length}행 표시 / 전체 {dbTotalCount}행
+                </span>
+                {isPaged&&(
+                  <div style={{display:"flex",alignItems:"center",gap:5}}>
+                    <button disabled={dbPage<=1} onClick={()=>setDbPage(p=>p-1)}
+                      style={{fontSize:11,padding:"3px 10px",borderRadius:5,border:"1px solid #e5e7eb",background:dbPage<=1?"#f3f4f6":"#fff",cursor:dbPage<=1?"default":"pointer",color:dbPage<=1?"#9ca3af":"#374151"}}>
+                      이전
+                    </button>
+                    <span style={{fontSize:12,color:"#374151",minWidth:70,textAlign:"center" as const,fontWeight:600}}>
+                      {dbPage} / {dbTotalPages} 페이지
+                    </span>
+                    <button disabled={dbPage>=dbTotalPages} onClick={()=>setDbPage(p=>p+1)}
+                      style={{fontSize:11,padding:"3px 10px",borderRadius:5,border:"1px solid #e5e7eb",background:dbPage>=dbTotalPages?"#f3f4f6":"#fff",cursor:dbPage>=dbTotalPages?"default":"pointer",color:dbPage>=dbTotalPages?"#9ca3af":"#374151"}}>
+                      다음
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            )}
+
             {/* KPI_DAILY */}
             {dbTable==="kpi_daily"&&(
               <div style={S.tableWrap}>
                 <div style={S.tableHeader}>
-                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>KPI_DAILY — 알람 발생 행만 표시 (alarm_flag=1)</span>
-                  <span style={{fontSize:11,color:"#9ca3af"}}>총 144 rows · 12개 장비 × 12일</span>
+                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>KPI_DAILY — alarm_flag = 1</span>
+                  <span style={{fontSize:11,color:"#9ca3af"}}>총 {filteredDbData.filter((r:any)=>r.alarm_flag===1).length} rows</span>
                 </div>
                 <div style={{overflowX:"auto" as const}}>
                   <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"Pretendard, sans-serif"}}>
@@ -1206,7 +1246,7 @@ useEffect(()=>{
                       </tr>
                     </thead>
                     <tbody>
-                      {(dbKpiData.length > 0 ? dbKpiData : DB_KPI_DAILY).map((row,i)=>(
+                      {filteredDbData.filter((r:any)=>r.alarm_flag===1).map((row,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:row.alarm_flag===1?"#fefce8":"#fff"}}>
                           <td style={{padding:"8px 12px",color:"#374151",whiteSpace:"nowrap" as const}}>{row.date}</td>
                           <td style={{padding:"8px 12px",fontWeight:700}}>{row.eqp_id}</td>
@@ -1242,7 +1282,7 @@ useEffect(()=>{
                     {["date","alarm_eqp_id","alarm_kpi"].map(h=><th key={h} style={{padding:"10px 16px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",letterSpacing:0.5}}>{h}</th>)}
                   </tr></thead>
                   <tbody>
-                    {(dbScenarioData.length > 0 ? dbScenarioData : DB_SCENARIO_MAP).map((row,i)=>{
+                    {filteredDbData.map((row,i)=>{
                       const meta=KPI_META[row.alarm_kpi];
                       return(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
@@ -1269,7 +1309,7 @@ useEffect(()=>{
                     {["rcp_id","eqp_id","complex_level"].map(h=><th key={h} style={{padding:"10px 16px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",letterSpacing:0.5}}>{h}</th>)}
                   </tr></thead>
                   <tbody>
-                    {(dbRcpData.length > 0 ? dbRcpData : DB_RCP_STATE).map((row,i)=>(
+                    {filteredDbData.map((row,i)=>(
                       <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:i%2===0?"#fff":"#fafafa"}}>
                         <td style={{padding:"10px 16px",fontFamily:"Pretendard, sans-serif",color:"#374151"}}>{row.rcp_id}</td>
                         <td style={{padding:"10px 16px",fontWeight:700,fontFamily:"Pretendard, sans-serif"}}>{row.eqp_id}</td>
@@ -1291,8 +1331,8 @@ useEffect(()=>{
             {dbTable==="eqp_state"&&(
               <div style={S.tableWrap}>
                 <div style={S.tableHeader}>
-                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>EQP_STATE — 장비 상태 이벤트 (2026-01-31 EQP12 샘플)</span>
-                  <span style={{fontSize:11,color:"#9ca3af"}}>총 3,042 rows</span>
+                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>EQP_STATE — 장비 상태 이벤트</span>
+                  <span style={{fontSize:11,color:"#9ca3af"}}>총 {dbEqpTotal>0?dbEqpTotal.toLocaleString():"3,042"} rows</span>
                 </div>
                 <div style={{overflowX:"auto" as const}}>
                   <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"Pretendard, sans-serif"}}>
@@ -1300,10 +1340,10 @@ useEffect(()=>{
                       {["event_time","end_time","eqp_id","line","oper","lot_id","rcp_id","state"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",whiteSpace:"nowrap" as const}}>{h}</th>)}
                     </tr></thead>
                     <tbody>
-                      {(dbEqpData.length > 0 ? dbEqpData : DB_EQP_STATE).map((row,i)=>(
+                      {pagedDbData.map((row,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:row.eqp_state==="DOWN"?"#fef2f2":i%2===0?"#fff":"#fafafa"}}>
-                          <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.event_time.slice(11)}</td>
-                          <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#6b7280"}}>{row.end_time.slice(11)}</td>
+                          <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.event_time}</td>
+                          <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#6b7280"}}>{row.end_time}</td>
                           <td style={{padding:"8px 12px",fontWeight:700}}>{row.eqp_id}</td>
                           <td style={{padding:"8px 12px",color:"#6b7280"}}>{row.line_id}</td>
                           <td style={{padding:"8px 12px",color:"#6b7280"}}>{row.oper_id}</td>
@@ -1322,8 +1362,8 @@ useEffect(()=>{
             {dbTable==="lot_state"&&(
               <div style={S.tableWrap}>
                 <div style={S.tableHeader}>
-                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>LOT_STATE — LOT 처리 이력 (2026-01-31 EQP12 샘플)</span>
-                  <span style={{fontSize:11,color:"#9ca3af"}}>총 5,771 rows</span>
+                  <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>LOT_STATE — LOT 처리 이력</span>
+                  <span style={{fontSize:11,color:"#9ca3af"}}>총 {dbLotTotal>0?dbLotTotal.toLocaleString():"5,771"} rows</span>
                 </div>
                 <div style={{overflowX:"auto" as const}}>
                   <table style={{width:"100%",borderCollapse:"collapse" as const,fontSize:12,fontFamily:"Pretendard, sans-serif"}}>
@@ -1331,9 +1371,9 @@ useEffect(()=>{
                       {["event_time","lot_id","line","oper","eqp_id","rcp_id","lot_state","in_cnt","hold","scrap"].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left" as const,fontSize:10,fontWeight:700,color:"#6b7280",whiteSpace:"nowrap" as const}}>{h}</th>)}
                     </tr></thead>
                     <tbody>
-                      {(dbLotData.length > 0 ? dbLotData : DB_LOT_STATE).map((row,i)=>(
+                      {pagedDbData.map((row,i)=>(
                         <tr key={i} style={{borderBottom:"1px solid #f3f4f6",background:row.lot_state==="HOLD"?"#fef2f2":i%2===0?"#fff":"#fafafa"}}>
-                          <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.event_time.slice(11)}</td>
+                          <td style={{padding:"8px 12px",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.event_time}</td>
                           <td style={{padding:"8px 12px",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const,color:"#374151"}}>{row.lot_id}</td>
                           <td style={{padding:"8px 12px",color:"#6b7280"}}>{row.line_id}</td>
                           <td style={{padding:"8px 12px",color:"#6b7280"}}>{row.oper_id}</td>
@@ -1436,7 +1476,7 @@ ${LATEST_ALARM.scenarios.map((s,i)=>`${i+1}. ${s}`).join("\n")}`;
   </div>
 )}
 {activeTab==="analytics"&&<AnalyticsPage reports={historyList}/>}
-        {activeTab==="settings"&&<SettingsPage/>}
+        {activeTab==="settings"&&<SettingsPage thresholds={thresholds} setThresholds={setThresholds}/>}
       </main>
 
       {selReport&&<ReportPanel report={selReport} onClose={()=>setSelReport(null)}/>}

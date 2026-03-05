@@ -25,6 +25,7 @@ black==24.10.0
 
 # PDF 처리
 pypdf==3.17.4
+reportlab==4.2.5
 
 # API Framework
 fastapi==0.109.0

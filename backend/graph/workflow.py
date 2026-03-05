@@ -7,6 +7,7 @@ LangGraph 워크플로우 정의
 """
 
 import sys
+import uuid
 from pathlib import Path
 from typing import Literal
 
@@ -16,7 +17,7 @@ sys.path.insert(0, str(project_root))
 
 from langgraph.graph import StateGraph, END
 from backend.graph.state import AgentState
-from backend.utils.cache import analysis_cache, qa_cache
+from backend.utils.cache import analysis_cache, qa_cache, SimpleCache
 
 # 각 노드 함수 개별 import
 from backend.nodes.node_1_input_router import node_1_input_router
@@ -28,6 +29,9 @@ from backend.nodes.node_6_root_cause_analysis import node_6_root_cause_analysis
 from backend.nodes.node_7_human_choice import node_7_human_choice
 from backend.nodes.node_8_report_writer import node_8_report_writer
 from backend.nodes.node_9_persist_report import node_9_persist_report
+
+# Phase 1 중간 상태 캐시 (30분 유효)
+phase1_cache = SimpleCache(ttl_seconds=1800)
 
 
 def route_after_input(state: AgentState) -> Literal["alarm_path", "question_path"]:
@@ -137,7 +141,7 @@ def run_alarm_analysis(alarm_date: str = None, alarm_eqp_id: str = None, alarm_k
     """
     
     print("\n" + "=" * 60)
-    print("🚀 알람 분석 워크플로우 시작")
+    print("알람 분석 워크플로우 시작")
     print("=" * 60 + "\n")
     
     # 1. 캐시 키 생성
@@ -151,7 +155,7 @@ def run_alarm_analysis(alarm_date: str = None, alarm_eqp_id: str = None, alarm_k
     if cache_key:
         cached_result = analysis_cache.get(cache_key)
         if cached_result:
-            print("✅ 캐시된 분석 결과 사용 (LLM 호출 생략)")
+            print("캐시된 분석 결과 사용 (LLM 호출 생략)")
             print("=" * 60 + "\n")
             return cached_result
     
@@ -176,7 +180,7 @@ def run_alarm_analysis(alarm_date: str = None, alarm_eqp_id: str = None, alarm_k
         analysis_cache.set(cache_key, final_state)
     
     print("\n" + "=" * 60)
-    print("✅ 알람 분석 워크플로우 완료")
+    print("알람 분석 워크플로우 완료")
     print("=" * 60 + "\n")
     
     return final_state
@@ -196,7 +200,7 @@ def run_question_answer(question: str) -> AgentState:
     """
     
     print("\n" + "=" * 60)
-    print("🚀 질문 답변 워크플로우 시작")
+    print("질문 답변 워크플로우 시작")
     print("=" * 60 + "\n")
     
     # 1. 캐시 키 생성 (질문의 해시값 사용)
@@ -207,7 +211,7 @@ def run_question_answer(question: str) -> AgentState:
     # 2. 캐시 확인
     cached_result = qa_cache.get(cache_key)
     if cached_result:
-        print("✅ 캐시된 답변 사용 (LLM 호출 생략)")
+        print("캐시된 답변 사용 (LLM 호출 생략)")
         print("=" * 60 + "\n")
         return cached_result
     
@@ -227,7 +231,95 @@ def run_question_answer(question: str) -> AgentState:
         qa_cache.set(cache_key, final_state)
     
     print("\n" + "=" * 60)
-    print("✅ 질문 답변 워크플로우 완료")
+    print("질문 답변 워크플로우 완료")
     print("=" * 60 + "\n")
-    
+
     return final_state
+
+
+def run_alarm_analysis_phase1(alarm_date: str = None, alarm_eqp_id: str = None, alarm_kpi: str = None) -> dict:
+    """
+    알람 분석 Phase 1: Nodes 1→2→3→6 실행.
+    근본 원인 후보를 반환하고 중간 상태를 세션으로 캐싱합니다.
+
+    Args:
+        alarm_date: 알람 날짜 (None이면 최신 알람)
+        alarm_eqp_id: 장비 ID
+        alarm_kpi: KPI
+
+    Returns:
+        dict: root_causes, session_id 포함 상태
+    """
+
+    print("\n" + "=" * 60)
+    print("알람 분석 Phase 1 시작 (Nodes 1→2→3→6)")
+    print("=" * 60 + "\n")
+
+    # 초기 상태
+    state: dict = {'input_type': 'alarm', 'metadata': {'llm_calls': 0}}
+    if alarm_date and alarm_eqp_id and alarm_kpi:
+        state['alarm_date'] = alarm_date
+        state['alarm_eqp_id'] = alarm_eqp_id
+        state['alarm_kpi'] = alarm_kpi
+
+    # 노드 순차 실행
+    for node_fn in [node_1_input_router, node_2_load_alarm_kpi,
+                    node_3_context_fetch, node_6_root_cause_analysis]:
+        result = node_fn(state)
+        state.update(result)
+        if 'error' in state:
+            print(f"[ERROR] Phase 1 실패: {state['error']}")
+            return state
+
+    # 세션 ID 발급 및 중간 상태 캐싱
+    session_id = str(uuid.uuid4())
+    phase1_cache.set(session_id, dict(state))
+    state['session_id'] = session_id
+
+    print("\n" + "=" * 60)
+    print(f"알람 분석 Phase 1 완료 (session_id: {session_id})")
+    print("=" * 60 + "\n")
+
+    return state
+
+
+def run_alarm_analysis_phase2(session_id: str, selected_index: int) -> dict:
+    """
+    알람 분석 Phase 2: 사용자 선택 반영 후 Nodes 7→8→9 실행.
+
+    Args:
+        session_id: Phase 1에서 발급받은 세션 ID
+        selected_index: 사용자가 선택한 원인 인덱스 (0부터 시작)
+
+    Returns:
+        dict: selected_cause, final_report, report_id 등 포함 상태
+    """
+
+    print("\n" + "=" * 60)
+    print(f"알람 분석 Phase 2 시작 (session_id: {session_id}, 선택: {selected_index}번)")
+    print("=" * 60 + "\n")
+
+    # 캐시된 Phase 1 상태 복원
+    cached_state = phase1_cache.get(session_id)
+    if not cached_state:
+        return {'error': '세션을 찾을 수 없습니다. Phase 1을 다시 실행해주세요.'}
+
+    state = dict(cached_state)
+    state['selected_cause_index'] = selected_index
+
+    # 노드 순차 실행
+    for node_fn in [node_7_human_choice, node_8_report_writer, node_9_persist_report]:
+        result = node_fn(state)
+        state.update(result)
+        if 'error' in state:
+            print(f"[ERROR] Phase 2 실패: {state['error']}")
+            return state
+
+    # 사용 완료 후 세션 캐시 삭제
+    phase1_cache.delete(session_id)
+
+    print("\n" + "=" * 60)
+    print("알람 분석 Phase 2 완료")
+    print("=" * 60 + "\n")
+
+    return state

@@ -42,7 +42,11 @@ def node_9_persist_report(state: dict) -> dict:
     """
     
     print("\n" + "=" * 60)
+<<<<<<< HEAD
     print("- [Node 9] Persist Report 실행")
+=======
+    print("[Node 9] Persist Report 실행")
+>>>>>>> main
     print("=" * 60)
     
     # 1. State에서 필요한 정보 가져오기
@@ -51,35 +55,65 @@ def node_9_persist_report(state: dict) -> dict:
     alarm_date = state.get('alarm_date')
     alarm_eqp_id = state.get('alarm_eqp_id')
     alarm_kpi = state.get('alarm_kpi')
-    
+    kpi_data = state.get('kpi_data', {})
+    selected_cause = state.get('selected_cause', {})
+    problem_summary = state.get('problem_summary', '')
+
     # 필수 정보 검증
     if not final_report:
         error_msg = "저장할 리포트가 없습니다"
+<<<<<<< HEAD
         print(f"- {error_msg}")
+=======
+        print(f"[ERROR] {error_msg}")
+>>>>>>> main
         return {'error': error_msg, 'rag_saved': False}
-    
+
     if not report_id:
         error_msg = "리포트 ID가 없습니다"
+<<<<<<< HEAD
         print(f"- {error_msg}")
         return {'error': error_msg, 'rag_saved': False}
     
     print(f"- 리포트 정보:")
+=======
+        print(f"[ERROR] {error_msg}")
+        return {'error': error_msg, 'rag_saved': False}
+
+    line_id = kpi_data.get('line_id', '')
+    oper_id = kpi_data.get('oper_id', '')
+    cause_text = selected_cause.get('cause', '')
+    cause_probability = selected_cause.get('probability', 0)
+
+    print(f"리포트 정보:")
+>>>>>>> main
     print(f"   ID: {report_id}")
     print(f"   날짜: {alarm_date}")
     print(f"   장비: {alarm_eqp_id}")
     print(f"   KPI: {alarm_kpi}")
+    print(f"   라인: {line_id} | 공정: {oper_id}")
+    print(f"   선택 원인: {cause_text[:50]}..." if cause_text else "   선택 원인: 없음")
     print(f"   크기: {len(final_report)}자")
-    
+
     # 2. 메타데이터 생성
     metadata = {
-        "date": alarm_date,
-        "eqp_id": alarm_eqp_id,
-        "kpi": alarm_kpi,
+        "date": alarm_date or '',
+        "eqp_id": alarm_eqp_id or '',
+        "kpi": alarm_kpi or '',
+        "line_id": line_id,
+        "oper_id": oper_id,
+        "selected_cause": cause_text,
+        "cause_probability": cause_probability,
+        "problem_summary": problem_summary[:200] if problem_summary else '',
         "alarm_flag": 1,
         "source": "ai_analysis"
     }
     
+<<<<<<< HEAD
     print(f"\n- ChromaDB에 저장 중...")
+=======
+    print(f"\nChromaDB에 저장 중...")
+>>>>>>> main
     
     # 3. ChromaDB에 저장
     try:
@@ -90,18 +124,32 @@ def node_9_persist_report(state: dict) -> dict:
         )
         
         if success:
+<<<<<<< HEAD
             print(f"   - ChromaDB 저장 성공!")
             
             # 4. 저장 확인
             total_reports = chroma_config.count_reports()
             print(f"   - 현재 총 리포트 개수: {total_reports}개")
+=======
+            print(f"   ChromaDB 저장 성공!")
+            
+            # 4. 저장 확인
+            total_reports = chroma_config.count_reports()
+            print(f"   현재 총 리포트 개수: {total_reports}개")
+>>>>>>> main
             
             # 5. 저장된 리포트 조회 확인
             saved_report = chroma_config.get_report_by_id(report_id)
             if saved_report:
+<<<<<<< HEAD
                 print(f"   - 저장 검증 완료")
             else:
                 print(f"   - 저장 검증 실패 (조회 안 됨)")
+=======
+                print(f"   저장 검증 완료")
+            else:
+                print(f"   [WARN] 저장 검증 실패 (조회 안 됨)")
+>>>>>>> main
             
             print("=" * 60 + "\n")
             
@@ -109,12 +157,20 @@ def node_9_persist_report(state: dict) -> dict:
         
         else:
             error_msg = "ChromaDB 저장 실패"
+<<<<<<< HEAD
             print(f"   - {error_msg}")
+=======
+            print(f"   [ERROR] {error_msg}")
+>>>>>>> main
             print("=" * 60 + "\n")
             return {'error': error_msg, 'rag_saved': False}
     
     except Exception as e:
         error_msg = f"저장 중 오류 발생: {str(e)}"
+<<<<<<< HEAD
         print(f"   - {error_msg}")
+=======
+        print(f"   [ERROR] {error_msg}")
+>>>>>>> main
         print("=" * 60 + "\n")
         return {'error': error_msg, 'rag_saved': False}

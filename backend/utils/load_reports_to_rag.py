@@ -18,7 +18,7 @@ from backend.config.chroma_config import chroma_config
 try:
     import pypdf
 except ImportError:
-    print("⚠️ pypdf 패키지가 필요합니다.")
+    print("[WARN] pypdf 패키지가 필요합니다.")
     print("설치: pip install pypdf")
     sys.exit(1)
 
@@ -43,7 +43,7 @@ def extract_text_from_pdf(pdf_path: str) -> str:
         return text
     
     except Exception as e:
-        print(f"❌ PDF 읽기 실패: {e}")
+        print(f"[ERROR] PDF 읽기 실패: {e}")
         return ""
 
 
@@ -78,7 +78,7 @@ def parse_report_filename(filename: str) -> dict:
     }
 
 
-def load_reports_to_rag(reports_dir: str = "data/reports"):
+def load_reports_to_rag(reports_dir: str = "backend/data/reports"):
     """
     reports 폴더의 모든 PDF를 ChromaDB에 로드합니다.
     
@@ -87,26 +87,26 @@ def load_reports_to_rag(reports_dir: str = "data/reports"):
     """
     
     print("\n" + "=" * 60)
-    print("📂 PDF 보고서 → ChromaDB 로드")
+    print("PDF 보고서 → ChromaDB 로드")
     print("=" * 60 + "\n")
     
     # reports 폴더 확인
     reports_path = Path(reports_dir)
     
     if not reports_path.exists():
-        print(f"❌ 폴더가 없습니다: {reports_dir}")
-        print(f"💡 먼저 폴더를 생성하세요: mkdir -p {reports_dir}")
+        print(f"[ERROR] 폴더가 없습니다: {reports_dir}")
+        print(f"먼저 폴더를 생성하세요: mkdir -p {reports_dir}")
         return
     
     # PDF 파일 목록 가져오기
     pdf_files = list(reports_path.glob("*.pdf"))
     
     if not pdf_files:
-        print(f"⚠️ {reports_dir} 폴더에 PDF 파일이 없습니다.")
-        print(f"💡 PDF 보고서를 작성해서 저장해주세요.")
+        print(f"[WARN] {reports_dir} 폴더에 PDF 파일이 없습니다.")
+        print(f"PDF 보고서를 작성해서 저장해주세요.")
         return
     
-    print(f"📄 총 {len(pdf_files)}개의 PDF 발견\n")
+    print(f"총 {len(pdf_files)}개의 PDF 발견\n")
     
     # 각 PDF 처리
     success_count = 0
@@ -119,21 +119,21 @@ def load_reports_to_rag(reports_dir: str = "data/reports"):
         metadata_dict = parse_report_filename(filename)
         
         if not metadata_dict:
-            print(f"  ⚠️ 파일명 형식 오류, 스킵\n")
+            print(f"  [WARN] 파일명 형식 오류, 스킵\n")
             continue
         
-        print(f"  📅 날짜: {metadata_dict['date']}")
-        print(f"  🔧 장비: {metadata_dict['eqp_id']}")
-        print(f"  📊 KPI: {metadata_dict['kpi']}")
+        print(f"  날짜: {metadata_dict['date']}")
+        print(f"  장비: {metadata_dict['eqp_id']}")
+        print(f"  KPI: {metadata_dict['kpi']}")
         
         # 2. PDF 텍스트 추출
         text = extract_text_from_pdf(str(pdf_file))
         
         if not text or len(text) < 50:
-            print(f"  ⚠️ 텍스트 추출 실패 또는 내용이 너무 짧음, 스킵\n")
+            print(f"  [WARN] 텍스트 추출 실패 또는 내용이 너무 짧음, 스킵\n")
             continue
         
-        print(f"  📝 텍스트 추출: {len(text)}자")
+        print(f"  텍스트 추출: {len(text)}자")
         
         # 3. ChromaDB에 저장
         report_id = f"report_{metadata_dict['date']}_{metadata_dict['eqp_id']}_{metadata_dict['kpi']}"
@@ -151,17 +151,29 @@ def load_reports_to_rag(reports_dir: str = "data/reports"):
             report_text=text,
             metadata=metadata
         )
-        
+
         if success:
-            print(f"  ✅ ChromaDB 저장 완료\n")
+            print(f"  ChromaDB 저장 완료")
+
+            # S3 업로드 (실패해도 계속 진행)
+            try:
+                from backend.config.aws_config import aws_config
+                if not aws_config.file_exists_in_s3(filename):
+                    s3_uri = aws_config.upload_file_to_s3(str(pdf_file), filename)
+                    print(f"  S3 업로드 완료: {s3_uri}\n")
+                else:
+                    print(f"  S3 이미 존재, 스킵: {filename}\n")
+            except Exception as e:
+                print(f"  [WARN] S3 업로드 실패 (ChromaDB 저장은 완료): {e}\n")
+
             success_count += 1
         else:
-            print(f"  ❌ ChromaDB 저장 실패\n")
+            print(f"  [ERROR] ChromaDB 저장 실패\n")
     
     # 최종 결과
     print("=" * 60)
-    print(f"🎉 완료! {success_count}/{len(pdf_files)}개 성공")
-    print(f"📊 ChromaDB 총 리포트: {chroma_config.count_reports()}개")
+    print(f"완료! {success_count}/{len(pdf_files)}개 성공")
+    print(f"ChromaDB 총 리포트: {chroma_config.count_reports()}개")
     print("=" * 60 + "\n")
 
 
@@ -171,14 +183,14 @@ def verify_rag_data():
     """
     
     print("\n" + "=" * 60)
-    print("🔍 ChromaDB 저장 데이터 확인")
+    print("ChromaDB 저장 데이터 확인")
     print("=" * 60 + "\n")
     
     total = chroma_config.count_reports()
     print(f"총 {total}개의 리포트 저장됨\n")
     
     if total == 0:
-        print("⚠️ 저장된 리포트가 없습니다.")
+        print("[WARN] 저장된 리포트가 없습니다.")
         return
     
     # 테스트 검색
@@ -191,7 +203,7 @@ def verify_rag_data():
     )
     
     if results:
-        print(f"✅ 유사 리포트 {len(results)}개 발견:\n")
+        print(f"유사 리포트 {len(results)}개 발견:\n")
         for i, report in enumerate(results, 1):
             print(f"{i}. ID: {report['id']}")
             print(f"   메타데이터: {report['metadata']}")
@@ -199,7 +211,7 @@ def verify_rag_data():
             print(f"   내용 미리보기: {report['document'][:100]}...")
             print()
     else:
-        print("⚠️ 검색 결과 없음")
+        print("[WARN] 검색 결과 없음")
     
     print("=" * 60 + "\n")
 
@@ -207,9 +219,9 @@ def verify_rag_data():
 def main():
     """메인 함수"""
     
-    print("\n🤖 PDF 보고서 RAG 로더\n")
+    print("\nPDF 보고서 RAG 로더\n")
     
-    print("📋 사용 방법:")
+    print("사용 방법:")
     print("1. data/reports/ 폴더에 PDF 파일들을 넣으세요")
     print("2. 파일명 형식: report_YYYYMMDD_EQP번호_KPI.pdf")
     print("3. 이 스크립트를 실행하면 자동으로 ChromaDB에 저장됩니다\n")

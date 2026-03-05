@@ -17,11 +17,11 @@ def test_load_latest_alarm():
     """최신 알람 KPI 로드 테스트"""
     
     print("\n" + "=" * 60)
-    print("🧪 최신 알람 KPI 로드 테스트")
+    print("최신 알람 KPI 로드 테스트")
     print("=" * 60 + "\n")
     
     # 1. Node 1 실행 (최신 알람 정보 로드)
-    print("1️⃣ Node 1 실행...")
+    print("1. Node 1 실행...")
     state = {'input_type': 'alarm'}
     result1 = node_1_input_router(state)
     
@@ -34,7 +34,7 @@ def test_load_latest_alarm():
     print(f"  alarm_kpi: {state.get('alarm_kpi')}")
     
     # 2. Node 2 실행 (KPI 데이터 조회)
-    print("\n2️⃣ Node 2 실행...")
+    print("\n2. Node 2 실행...")
     result2 = node_2_load_alarm_kpi(state)
     
     # State 업데이트
@@ -46,7 +46,7 @@ def test_load_latest_alarm():
     
     kpi_data = state['kpi_data']
     
-    print("\n✅ 조회 성공!")
+    print("\n조회 성공!")
     print(f"   날짜: {kpi_data['date']}")
     print(f"   장비: {kpi_data['eqp_id']}")
     print(f"   라인: {kpi_data['line_id']}")
@@ -55,14 +55,14 @@ def test_load_latest_alarm():
     assert kpi_data['date'] == '2026-01-31', "날짜 불일치"
     assert kpi_data['eqp_id'] == 'EQP12', "장비 ID 불일치"
     
-    print("\n✅ 최신 알람 KPI 로드 테스트 통과!\n")
+    print("\n최신 알람 KPI 로드 테스트 통과!\n")
 
 
 def test_specific_alarm():
     """특정 날짜 알람 테스트"""
     
     print("=" * 60)
-    print("🧪 특정 날짜 알람 KPI 로드 테스트")
+    print("특정 날짜 알람 KPI 로드 테스트")
     print("=" * 60 + "\n")
     
     # 과거 알람 지정 (2026-01-20, EQP01, OEE)
@@ -81,7 +81,7 @@ def test_specific_alarm():
     
     kpi_data = result['kpi_data']
     
-    print("\n✅ 조회 성공!")
+    print("\n조회 성공!")
     print(f"   OEE: {kpi_data['oee_v']}% (목표: {kpi_data['oee_t']}%)")
     
     # OEE 값 검증 (CSV 데이터 기준)
@@ -89,14 +89,14 @@ def test_specific_alarm():
     assert kpi_data['oee_t'] == 70, "OEE 목표치 불일치"
     assert kpi_data['alarm_flag'] == 1, "알람 플래그 불일치"
     
-    print("\n✅ 특정 날짜 알람 KPI 로드 테스트 통과!\n")
+    print("\n특정 날짜 알람 KPI 로드 테스트 통과!\n")
 
 
 def test_missing_data():
     """데이터 없는 경우 테스트"""
     
     print("=" * 60)
-    print("🧪 데이터 없는 경우 테스트")
+    print("데이터 없는 경우 테스트")
     print("=" * 60 + "\n")
     
     # 존재하지 않는 날짜/장비
@@ -113,14 +113,14 @@ def test_missing_data():
     assert 'error' in result, "에러가 발생해야 함"
     assert result.get('kpi_data') is None, "KPI 데이터가 있으면 안 됨"
     
-    print(f"\n✅ 예상대로 에러 발생: {result['error']}")
-    print("\n✅ 데이터 없는 경우 테스트 통과!\n")
+    print(f"\n예상대로 에러 발생: {result['error']}")
+    print("\n데이터 없는 경우 테스트 통과!\n")
 
 
 def main():
     """모든 테스트 실행"""
     
-    print("\n🧪 Node 2: Load Alarm KPI 테스트 시작\n")
+    print("\nNode 2: Load Alarm KPI 테스트 시작\n")
     
     try:
         test_load_latest_alarm()
@@ -128,14 +128,14 @@ def main():
         test_missing_data()
         
         print("=" * 60)
-        print("🎊 모든 테스트 통과!")
+        print("모든 테스트 통과!")
         print("=" * 60 + "\n")
         
     except AssertionError as e:
-        print(f"\n❌ 테스트 실패: {e}\n")
+        print(f"\n[ERROR] 테스트 실패: {e}\n")
         raise
     except Exception as e:
-        print(f"\n❌ 예상치 못한 오류: {e}\n")
+        print(f"\n[ERROR] 예상치 못한 오류: {e}\n")
         raise
 
 
