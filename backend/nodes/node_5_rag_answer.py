@@ -84,13 +84,17 @@ def node_5_rag_answer(state: dict) -> dict:
 
     # 3. 프롬프트 생성 및 LLM 호출
     live_context = state.get('live_context', '')
+    db_context   = state.get('db_context', '')
     if live_context:
         print(f"   실시간 컨텍스트 포함 ({len(live_context)}자)")
+    if db_context:
+        print(f"   DB 컨텍스트 포함 ({len(db_context)}자)")
     print(f"\n답변 생성 중...")
     prompt = get_question_answer_prompt(
         question=question,
         similar_reports=similar_reports,
-        live_context=live_context
+        live_context=live_context,
+        db_context=db_context,
     )
 
     print(f"Claude 호출 중...")

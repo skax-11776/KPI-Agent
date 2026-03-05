@@ -24,6 +24,8 @@ from backend.nodes.node_1_input_router import node_1_input_router
 from backend.nodes.node_2_load_alarm_kpi import node_2_load_alarm_kpi
 from backend.nodes.node_3_context_fetch import node_3_context_fetch
 from backend.nodes.node_4_report_lookup import node_4_report_lookup
+from backend.nodes.node_4b_classifier import node_4b_classifier
+from backend.nodes.node_4c_db_query import node_4c_db_query
 from backend.nodes.node_5_rag_answer import node_5_rag_answer
 from backend.nodes.node_6_root_cause_analysis import node_6_root_cause_analysis
 from backend.nodes.node_7_human_choice import node_7_human_choice
@@ -77,8 +79,10 @@ def create_workflow() -> StateGraph:
     workflow.add_node("node_9", node_9_persist_report)
     
     # 질문 경로 노드
-    workflow.add_node("node_4", node_4_report_lookup)
-    workflow.add_node("node_5", node_5_rag_answer)
+    workflow.add_node("node_4b", node_4b_classifier)
+    workflow.add_node("node_4c", node_4c_db_query)
+    workflow.add_node("node_4",  node_4_report_lookup)
+    workflow.add_node("node_5",  node_5_rag_answer)
     
     # ========== 엣지 추가 ==========
     
@@ -91,10 +95,10 @@ def create_workflow() -> StateGraph:
         route_after_input,
         {
             "alarm_path": "node_2",
-            "question_path": "node_4"
+            "question_path": "node_4b"   # 질문 → 분류기 먼저
         }
     )
-    
+
     # 알람 경로: 2 → 3 → 6 → 7 → 8 → 9 → END
     workflow.add_edge("node_2", "node_3")
     workflow.add_edge("node_3", "node_6")
@@ -102,10 +106,28 @@ def create_workflow() -> StateGraph:
     workflow.add_edge("node_7", "node_8")
     workflow.add_edge("node_8", "node_9")
     workflow.add_edge("node_9", END)
-    
-    # 질문 경로: 4 → 5 → END
-    workflow.add_edge("node_4", "node_5")
-    workflow.add_edge("node_5", END)
+
+    # 질문 경로: 4b → 3-way 분기 → 5 → END
+    def route_question(s: AgentState) -> str:
+        route = s.get("qa_route", "rag")
+        if route == "live_only":
+            return "live_only"
+        if s.get("needs_db"):
+            return "db"
+        return "rag"
+
+    workflow.add_conditional_edges(
+        "node_4b",
+        route_question,
+        {
+            "db":        "node_4c",  # DB 조회 → RAG → LLM
+            "rag":       "node_4",   # RAG만 → LLM
+            "live_only": "node_5",   # live_context만으로 바로 LLM
+        }
+    )
+    workflow.add_edge("node_4c", "node_4")  # DB 후 RAG도 실행
+    workflow.add_edge("node_4",  "node_5")
+    workflow.add_edge("node_5",  END)
     
     # 컴파일
     app = workflow.compile()

@@ -130,7 +130,7 @@ def get_report_writer_prompt(
 """
 
 
-def get_question_answer_prompt(question: str, similar_reports: list, live_context: str = "") -> str:
+def get_question_answer_prompt(question: str, similar_reports: list, live_context: str = "", db_context: str = "") -> str:
 
     # 참고 보고서 텍스트 구성 (출처 명확히)
     reports_text = ""
@@ -143,7 +143,7 @@ def get_question_answer_prompt(question: str, similar_reports: list, live_contex
 
     reports_section = reports_text if reports_text else "※ 유사한 과거 보고서가 없습니다."
 
-    # 실시간 현황 섹션 (프론트엔드에서 전달받은 경우만 포함)
+    # 실시간 현황 섹션 (프론트엔드 KPI 스냅샷)
     live_section = ""
     if live_context.strip():
         live_section = f"""
@@ -152,9 +152,18 @@ def get_question_answer_prompt(question: str, similar_reports: list, live_contex
 
 """
 
+    # RDS DB 조회 결과 섹션 (Node 4C에서 조회된 경우만 포함)
+    db_section = ""
+    if db_context.strip():
+        db_section = f"""
+## RDS 데이터베이스 조회 결과
+{db_context}
+
+"""
+
     return f"""당신은 제조 라인 KPI 분석 전문가 AI입니다.
 현장 엔지니어가 읽기 쉬운 간결한 보고서 형식으로 답변하세요.
-{live_section}
+{live_section}{db_section}
 ## 사용자 질문
 {question}
 

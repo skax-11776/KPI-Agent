@@ -72,7 +72,26 @@ class AgentState(TypedDict, total=False):
 
     live_context: Optional[str]
     """프론트엔드에서 전달받은 실시간 탭 현황 데이터 (Dashboard KPI, 알람 이력 등)"""
-    
+
+    # ========== 질문 라우팅 (Node 4B) ==========
+    needs_db: Optional[bool]
+    """RDS DB 조회 필요 여부"""
+
+    needs_rag: Optional[bool]
+    """ChromaDB RAG 검색 필요 여부"""
+
+    needed_tables: Optional[List[str]]
+    """조회할 RDS 테이블 목록 (kpi_daily, eqp_state, lot_state, rcp_state)"""
+
+    query_filters: Optional[Dict[str, Any]]
+    """RDS 쿼리 필터 {date, eqp_id, start_date, end_date}"""
+
+    db_context: Optional[str]
+    """Node 4C에서 RDS 조회 후 포맷된 컨텍스트 텍스트"""
+
+    qa_route: Optional[str]
+    """질문 답변 경로: 'db' | 'rag' | 'live_only'"""
+
     final_answer: Optional[str]
     """질문에 대한 최종 답변 (LLM 생성)"""
     

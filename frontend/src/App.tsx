@@ -619,10 +619,16 @@ interface TabCarouselProps {
   historyList: Report[];
   dbKpiData: any[];
   dbEqpData: any[];
+  dbLotData: any[];
+  dbRcpData: any[];
+  dbScenarioData: any[];
   onNavigate: (tab: string) => void;
 }
-function TabCarousel({initialTab,kpi,thresholds,historyList,dbKpiData,dbEqpData,onNavigate}:TabCarouselProps) {
+function TabCarousel({initialTab,kpi,thresholds,historyList,dbKpiData,dbEqpData,dbLotData,dbRcpData,dbScenarioData,onNavigate}:TabCarouselProps) {
   const [cur, setCur] = React.useState(initialTab);
+  const [dbSub, setDbSub] = React.useState<string>("kpi_daily");
+  const [filterDate, setFilterDate] = React.useState<string>("all");
+  const [filterEqp, setFilterEqp] = React.useState<string>("all");
   const TABS=[
     {id:"dashboard",icon:"📊",label:"Dashboard"},
     {id:"analytics",icon:"📈",label:"Analytics"},
@@ -741,36 +747,129 @@ function TabCarousel({initialTab,kpi,thresholds,historyList,dbKpiData,dbEqpData,
       </div>
     );
 
-    if(cur==="database") return(
-      <div style={{padding:12}}>
-        <div style={{fontSize:11,fontWeight:700,color:"#374151",marginBottom:8}}>KPI_DAILY ({dbKpiData.length}건)</div>
-        {dbKpiData.length>0?(
-          <div style={{fontSize:10,overflowX:"auto" as const}}>
-            <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:340}}>
-              <span>날짜</span><span>장비</span><span>OEE목</span><span>OEE실</span><span>THP목</span><span>THP실</span><span>TAT목</span><span>TAT실</span>
-            </div>
-            {dbKpiData.slice(0,10).map((r:any,i:number)=>(
-              <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:340}}>
-                <span>{r.date?.slice(5)}</span><span>{r.eqp_id}</span>
-                <span>{r.oee_t}%</span><span style={{color:r.oee_v<r.oee_t?"#dc2626":"#16a34a",fontWeight:600}}>{r.oee_v}%</span>
-                <span>{r.thp_t}</span><span style={{color:r.thp_v<r.thp_t?"#dc2626":"#16a34a",fontWeight:600}}>{r.thp_v}</span>
-                <span>{r.tat_t}h</span><span style={{color:r.tat_v>r.tat_t?"#dc2626":"#16a34a",fontWeight:600}}>{r.tat_v}h</span>
-              </div>
+    if(cur==="database") {
+      const tableMap: Record<string,any[]> = {
+        kpi_daily: dbKpiData, eqp_state: dbEqpData,
+        lot_state: dbLotData, rcp_state: dbRcpData, scenario_map: dbScenarioData,
+      };
+      const curData = tableMap[dbSub] || [];
+      const getDate=(r:any)=>r.date?.slice(0,10)||r.event_time?.slice(0,10)||null;
+      const uniqDates = Array.from(new Set(curData.map(getDate).filter(Boolean))).sort() as string[];
+      const uniqEqps  = Array.from(new Set(curData.map((r:any)=>r.eqp_id).filter(Boolean))).sort() as string[];
+      const filtered = curData.filter((r:any)=>{
+        if(filterDate!=="all" && getDate(r)!==filterDate) return false;
+        if(filterEqp!=="all"  && r.eqp_id!==filterEqp)   return false;
+        return true;
+      });
+      const selectStyle:React.CSSProperties={fontSize:10,padding:"2px 4px",border:"1px solid #e2e8f0",borderRadius:4,background:"#fff",cursor:"pointer",color:"#374151"};
+      const subTabs=[
+        {id:"kpi_daily",label:"KPI_DAILY"},
+        {id:"eqp_state",label:"EQP_STATE"},
+        {id:"lot_state",label:"LOT_STATE"},
+        {id:"rcp_state",label:"RCP_STATE"},
+        {id:"scenario_map",label:"SCENARIO"},
+      ];
+      return(
+        <div style={{padding:12}}>
+          {/* 서브 테이블 선택 */}
+          <div style={{display:"flex",gap:4,flexWrap:"wrap" as const,marginBottom:8}}>
+            {subTabs.map(t=>(
+              <button key={t.id} onClick={()=>{setDbSub(t.id);setFilterDate("all");setFilterEqp("all");}} style={{
+                fontSize:9,fontWeight:dbSub===t.id?700:400,padding:"3px 8px",
+                border:`1px solid ${dbSub===t.id?"#2563eb":"#e2e8f0"}`,borderRadius:4,
+                background:dbSub===t.id?"#eff6ff":"#fff",
+                color:dbSub===t.id?"#1d4ed8":"#374151",cursor:"pointer",
+              }}>{t.label}</button>
             ))}
           </div>
-        ):<div style={{color:"#9ca3af",fontSize:11}}>데이터 없음</div>}
-        {dbEqpData.length>0&&<>
-          <div style={{fontSize:11,fontWeight:700,color:"#374151",margin:"12px 0 6px"}}>EQP_STATE ({dbEqpData.length}건)</div>
-          {dbEqpData.slice(0,5).map((r:any,i:number)=>(
-            <div key={i} style={{fontSize:10,padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",display:"flex",gap:12}}>
-              <span>{r.event_time?.slice(5,16)}</span>
-              <span style={{fontWeight:600}}>{r.eqp_id}</span>
-              <span style={{color:r.state==="DOWN"?"#dc2626":"#16a34a",fontWeight:600}}>{r.state}</span>
+          {/* 필터 행 */}
+          <div style={{display:"flex",gap:6,marginBottom:8,alignItems:"center"}}>
+            {uniqDates.length>0&&(
+              <select value={filterDate} onChange={e=>setFilterDate(e.target.value)} style={selectStyle}>
+                <option value="all">날짜 전체</option>
+                {uniqDates.map(d=><option key={d} value={d}>{d}</option>)}
+              </select>
+            )}
+            {uniqEqps.length>0&&(
+              <select value={filterEqp} onChange={e=>setFilterEqp(e.target.value)} style={selectStyle}>
+                <option value="all">장비 전체</option>
+                {uniqEqps.map(e=><option key={e} value={e}>{e}</option>)}
+              </select>
+            )}
+            <span style={{fontSize:9,color:"#9ca3af",marginLeft:"auto"}}>{filtered.length}건</span>
+          </div>
+          {/* 테이블 데이터 */}
+          {filtered.length===0?(
+            <div style={{color:"#9ca3af",fontSize:11,textAlign:"center" as const,padding:"20px 0"}}>
+              {curData.length===0?"데이터 없음 (Database 탭 방문 후 로드됩니다)":"필터 결과 없음"}
             </div>
-          ))}
-        </>}
-      </div>
-    );
+          ):(
+            <div style={{fontSize:10,overflowX:"auto" as const}}>
+              {dbSub==="kpi_daily"&&<>
+                <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:340}}>
+                  <span>날짜</span><span>장비</span><span>OEE목</span><span>OEE실</span><span>THP목</span><span>THP실</span><span>TAT목</span><span>TAT실</span>
+                </div>
+                {filtered.slice(0,15).map((r:any,i:number)=>(
+                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:340}}>
+                    <span>{r.date?.slice(5)}</span><span>{r.eqp_id}</span>
+                    <span>{r.oee_t}%</span><span style={{color:r.oee_v<r.oee_t?"#dc2626":"#16a34a",fontWeight:600}}>{r.oee_v}%</span>
+                    <span>{r.thp_t}</span><span style={{color:r.thp_v<r.thp_t?"#dc2626":"#16a34a",fontWeight:600}}>{r.thp_v}</span>
+                    <span>{r.tat_t}h</span><span style={{color:r.tat_v>r.tat_t?"#dc2626":"#16a34a",fontWeight:600}}>{r.tat_v}h</span>
+                  </div>
+                ))}
+              </>}
+              {dbSub==="eqp_state"&&<>
+                <div style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 0.8fr 0.8fr 1fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:320}}>
+                  <span>이벤트 시간</span><span>장비</span><span>상태</span><span>이전</span><span>지속(분)</span>
+                </div>
+                {filtered.slice(0,15).map((r:any,i:number)=>(
+                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 0.8fr 0.8fr 1fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:320}}>
+                    <span>{r.event_time?.slice(5,16)}</span><span>{r.eqp_id}</span>
+                    <span style={{color:r.state==="DOWN"?"#dc2626":r.state==="RUN"?"#16a34a":"#374151",fontWeight:600}}>{r.state}</span>
+                    <span>{r.prev_state}</span><span>{r.duration_min}</span>
+                  </div>
+                ))}
+              </>}
+              {dbSub==="lot_state"&&<>
+                <div style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 1.2fr 0.8fr 0.8fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:320}}>
+                  <span>이벤트 시간</span><span>장비</span><span>LOT ID</span><span>상태</span><span>RCP</span>
+                </div>
+                {filtered.slice(0,15).map((r:any,i:number)=>(
+                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 1.2fr 0.8fr 0.8fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:320}}>
+                    <span>{r.event_time?.slice(5,16)}</span><span>{r.eqp_id}</span>
+                    <span style={{fontSize:9}}>{r.lot_id}</span><span>{r.state}</span><span>{r.rcp_id}</span>
+                  </div>
+                ))}
+              </>}
+              {dbSub==="rcp_state"&&<>
+                <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr 1fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:260}}>
+                  <span>RCP ID</span><span>장비</span><span>복잡도</span><span>처리시간(분)</span>
+                </div>
+                {filtered.slice(0,15).map((r:any,i:number)=>(
+                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr 1fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:260}}>
+                    <span>{r.rcp_id}</span><span>{r.eqp_id}</span>
+                    <span style={{fontWeight:600,color:r.complexity>=8?"#dc2626":"#374151"}}>{r.complexity}</span>
+                    <span>{r.process_time_min}</span>
+                  </div>
+                ))}
+              </>}
+              {dbSub==="scenario_map"&&<>
+                <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr 0.8fr",color:"#9ca3af",fontWeight:700,paddingBottom:3,borderBottom:"1px solid #e2e8f0",minWidth:280}}>
+                  <span>날짜</span><span>장비</span><span>KPI</span><span>알람</span>
+                </div>
+                {filtered.slice(0,15).map((r:any,i:number)=>(
+                  <div key={i} style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 0.8fr 0.8fr",padding:"3px 0",borderBottom:"1px solid #f9fafb",color:"#374151",minWidth:280}}>
+                    <span>{r.date?.slice(5)}</span><span>{r.eqp_id}</span>
+                    <span style={{color:"#2563eb",fontWeight:600}}>{r.alarm_kpi}</span>
+                    <span style={{color:"#dc2626",fontSize:9}}>{r.alarm_yn?"Y":""}</span>
+                  </div>
+                ))}
+              </>}
+            </div>
+          )}
+        </div>
+      );
+    }
 
     if(cur==="settings") return(
       <div style={{padding:12}}>
@@ -1412,6 +1511,9 @@ useEffect(()=>{
                           historyList={historyList}
                           dbKpiData={dbKpiData}
                           dbEqpData={dbEqpData}
+                          dbLotData={dbLotData}
+                          dbRcpData={dbRcpData}
+                          dbScenarioData={dbScenarioData}
                           onNavigate={t=>setActiveTab(t as Tab)}
                         />
                       )}
