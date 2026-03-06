@@ -1,0 +1,82 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - 'k8s/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_FRONTEND: team-4-frontend
+  EKS_CLUSTER: ag-prod-eks
+  K8S_NAMESPACE: team-4
+
+jobs:
+  build-and-deploy-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push frontend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f frontend/Dockerfile -t $ECR_REGISTRY/$ECR_FRONTEND:$IMAGE_TAG ./frontend
+          docker tag $ECR_REGISTRY/$ECR_FRONTEND:$IMAGE_TAG $ECR_REGISTRY/$ECR_FRONTEND:latest
+          docker push $ECR_REGISTRY/$ECR_FRONTEND:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_FRONTEND:latest
+
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ env.AWS_REGION }} \
+            --name ${{ env.EKS_CLUSTER }}
+
+      - name: Create namespace and secrets
+        run: |
+          kubectl create namespace ${{ env.K8S_NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret generic kpi-secrets \
+            --from-literal=AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            --from-literal=AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            --from-literal=SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+            --from-literal=SUPABASE_KEY="${{ secrets.SUPABASE_KEY }}" \
+            --from-literal=RDS_HOST="${{ secrets.RDS_HOST }}" \
+            --from-literal=RDS_PORT="${{ secrets.RDS_PORT }}" \
+            --from-literal=RDS_DB="${{ secrets.RDS_DB }}" \
+            --from-literal=RDS_USER="${{ secrets.RDS_USER }}" \
+            --from-literal=RDS_PASSWORD="${{ secrets.RDS_PASSWORD }}" \
+            --namespace=${{ env.K8S_NAMESPACE }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy frontend to EKS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          kubectl apply -k k8s/
+          kubectl set image deployment/kpi-frontend \
+            kpi-frontend=$ECR_REGISTRY/$ECR_FRONTEND:$IMAGE_TAG \
+            -n ${{ env.K8S_NAMESPACE }}
+          kubectl rollout status deployment/kpi-frontend -n ${{ env.K8S_NAMESPACE }}
