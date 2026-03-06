@@ -19,7 +19,7 @@ interface Report {
   causes: string[]; scenarios: string[]; results: string[];
   pdf_raw: { basic_info: string; problem: string; root_cause: string; scenario: string; result: string; };
 }
-interface ChatMessage { role: "user"|"assistant"; content: string; timestamp: string; source?: "llm"|"rag"|"error"; suggestedTab?: string; noSelect?: boolean; }
+interface ChatMessage { role: "user"|"assistant"; content: string; timestamp: string; source?: "llm"|"rag"|"error"; suggestedTab?: string; noSelect?: boolean; highlightedDate?: string; }
 interface ChatExport { id:string; title:string; date:string; msgCount:number; messages:ChatMessage[]; savedToS3?:boolean; }
 interface RealtimePoint { time: string; oee: number; thp: number; tat: number; wip: number; }
 interface LiveKPI { oee:number;thp:number;tat:number;wip:number; oee_prev:number;thp_prev:number;tat_prev:number;wip_prev:number; }
@@ -220,6 +220,37 @@ function getFallback(q:string):string {
   if(ql.includes("최신")||ql.includes("오늘")||ql.includes("최근")) return "최신 알람: 2026-01-31 EQP12 THP\n목표 250 → 실적 227 / RCP23·RCP24 DOWN 4회";
   if(ql.includes("위험")||ql.includes("심각")) return "가장 심각: EQP11 OEE 50.56% (목표 대비 -28%) / EQP05 WIP 218EA (목표 대비 -56%)";
   return "질문에 EQP 번호, KPI 유형(OEE/THP/TAT/WIP)을 포함하시면 더 정확한 분석을 제공합니다.";
+}
+
+// ────────────────────────── 날짜 추출 헬퍼 ──────────────────────────
+function extractDateFromQuestion(q: string): string | null {
+  // "2026-01-25" 또는 "2026/01/25" 형식
+  const full = q.match(/20\d{2}[-/](\d{1,2})[-/](\d{1,2})/);
+  if (full) {
+    const m = full[1].padStart(2, '0');
+    const d = full[2].padStart(2, '0');
+    return `2026-${m}-${d}`;
+  }
+  // "2026년 1월 25일" 형식
+  const koFull = q.match(/20\d{2}년\s*(\d{1,2})월\s*(\d{1,2})일/);
+  if (koFull) {
+    const m = koFull[1].padStart(2, '0');
+    const d = koFull[2].padStart(2, '0');
+    return `2026-${m}-${d}`;
+  }
+  // "1월 25일" 형식 (연도 생략, 2026 가정)
+  const ko = q.match(/(\d{1,2})월\s*(\d{1,2})일/);
+  if (ko) {
+    const m = ko[1].padStart(2, '0');
+    const d = ko[2].padStart(2, '0');
+    return `2026-${m}-${d}`;
+  }
+  // "01-25" 형식 (연도 생략, 2026 가정)
+  const short = q.match(/\b(0[1-9]|1[0-2])-([0-2]\d|3[01])\b/);
+  if (short) {
+    return `2026-${short[1]}-${short[2]}`;
+  }
+  return null;
 }
 
 // ────────────────────────── 서브 컴포넌트 ──────────────────────────
@@ -624,8 +655,9 @@ interface TabCarouselProps {
   dbRcpData: any[];
   dbScenarioData: any[];
   onNavigate: (tab: string) => void;
+  highlightedDate?: string;
 }
-function TabCarousel({initialTab,kpi,thresholds,historyList,dbKpiData,dbEqpData,dbLotData,dbRcpData,dbScenarioData,onNavigate}:TabCarouselProps) {
+function TabCarousel({initialTab,kpi,thresholds,historyList,dbKpiData,dbEqpData,dbLotData,dbRcpData,dbScenarioData,onNavigate,highlightedDate}:TabCarouselProps) {
   const [cur, setCur] = React.useState(initialTab);
   const [dbSub, setDbSub] = React.useState<string>("kpi_daily");
   const [filterDate, setFilterDate] = React.useState<string>("all");
@@ -722,31 +754,55 @@ function TabCarousel({initialTab,kpi,thresholds,historyList,dbKpiData,dbEqpData,
       );
     }
 
-    if(cur==="alarms") return(
-      <div style={{padding:12}}>
-        <div style={{padding:"10px 12px",borderRadius:8,background:"#fee2e2",border:"1px solid #fecaca",marginBottom:10}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-            <span style={{fontWeight:700,fontSize:12,color:"#991b1b"}}>🔴 최신 알람</span>
-            <span style={{fontSize:9,color:"#9ca3af"}}>{LATEST_ALARM.date} {LATEST_ALARM.time}</span>
-          </div>
-          <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{LATEST_ALARM.eqp_id} — THP 이상</div>
-          <div style={{fontSize:10,color:"#374151"}}>목표 {LATEST_ALARM.thp_t}개 → 실적 {LATEST_ALARM.thp_v}개 <span style={{color:"#dc2626",fontWeight:700}}>({LATEST_ALARM.thp_v-LATEST_ALARM.thp_t})</span></div>
-          <div style={{fontSize:10,color:"#374151",marginTop:4}}>
-            {LATEST_ALARM.causes.slice(0,2).map((c,i)=><div key={i} style={{marginTop:2}}>· {c}</div>)}
-          </div>
-        </div>
-        <div style={{fontSize:11,fontWeight:700,color:"#374151",marginBottom:6}}>과거 이력 ({historyList.length}건)</div>
-        {historyList.slice(0,6).map((r,i)=>(
-          <div key={i} style={{padding:"6px 10px",borderRadius:6,background:"#f9fafb",border:"1px solid #f3f4f6",marginBottom:4,fontSize:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
-              <span style={{fontWeight:700}}>{r.eqp_id} — {r.alarm_kpi}</span>
-              <span style={{color:"#9ca3af"}}>{r.date}</span>
+    if(cur==="alarms") {
+      // 날짜 매칭: REPORTS에서 먼저 찾고, 없으면 LATEST_ALARM 확인
+      const matchedReport = highlightedDate ? historyList.find(r=>r.date===highlightedDate) : null;
+      const isLatestMatch = highlightedDate === LATEST_ALARM.date;
+      const showHighlight = !!highlightedDate;
+
+      // 빨간 박스에 보여줄 알람 정보 결정
+      const boxTitle = matchedReport
+        ? `${matchedReport.eqp_id} — ${KPI_META[matchedReport.alarm_kpi]?.label || matchedReport.alarm_kpi} 알람`
+        : isLatestMatch
+          ? `${LATEST_ALARM.eqp_id} — THP 알람 (최신)`
+          : `${LATEST_ALARM.eqp_id} — THP 이상`;
+      const boxDate = matchedReport
+        ? `${matchedReport.date} ${matchedReport.time}`
+        : `${LATEST_ALARM.date} ${LATEST_ALARM.time}`;
+      const boxLabel = showHighlight ? `🔴 ${highlightedDate} 알람` : "🔴 최신 알람";
+      const boxCauses = matchedReport
+        ? matchedReport.causes.slice(0,2)
+        : LATEST_ALARM.causes.slice(0,2);
+      const boxKpiLine = matchedReport
+        ? `목표 ${matchedReport.target_raw} → 실적 ${matchedReport.actual_raw}  (${matchedReport.diff_raw})`
+        : `목표 ${LATEST_ALARM.thp_t}개 → 실적 ${LATEST_ALARM.thp_v}개  (${LATEST_ALARM.thp_v-LATEST_ALARM.thp_t})`;
+
+      return(
+        <div style={{padding:12}}>
+          <div style={{padding:"10px 12px",borderRadius:8,background:"#fee2e2",border:`2px solid ${showHighlight?"#dc2626":"#fecaca"}`,marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <span style={{fontWeight:700,fontSize:12,color:"#991b1b"}}>{boxLabel}</span>
+              <span style={{fontSize:9,color:"#9ca3af"}}>{boxDate}</span>
             </div>
-            <div style={{color:"#374151"}}>목표 {r.target_raw} → 실적 {r.actual_raw} <span style={{color:"#dc2626",fontWeight:600}}>{r.diff_raw}</span></div>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{boxTitle}</div>
+            <div style={{fontSize:10,color:"#374151"}}>{boxKpiLine}</div>
+            <div style={{fontSize:10,color:"#374151",marginTop:4}}>
+              {boxCauses.map((c,i)=><div key={i} style={{marginTop:2}}>· {c}</div>)}
+            </div>
           </div>
-        ))}
-      </div>
-    );
+          <div style={{fontSize:11,fontWeight:700,color:"#374151",marginBottom:6}}>과거 이력 ({historyList.length}건)</div>
+          {historyList.slice(0,6).map((r,i)=>(
+            <div key={i} style={{padding:"6px 10px",borderRadius:6,background:r.date===highlightedDate?"#fef2f2":"#f9fafb",border:`1px solid ${r.date===highlightedDate?"#fecaca":"#f3f4f6"}`,marginBottom:4,fontSize:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+                <span style={{fontWeight:700,color:r.date===highlightedDate?"#dc2626":"inherit"}}>{r.eqp_id} — {r.alarm_kpi}</span>
+                <span style={{color:"#9ca3af"}}>{r.date}</span>
+              </div>
+              <div style={{color:"#374151"}}>목표 {r.target_raw} → 실적 {r.actual_raw} <span style={{color:"#dc2626",fontWeight:600}}>{r.diff_raw}</span></div>
+            </div>
+          ))}
+        </div>
+      );
+    }
 
     if(cur==="database") {
       const tableMap: Record<string,any[]> = {
@@ -1237,8 +1293,13 @@ useEffect(()=>{
       const cleanText = text.replace(/\[탭:\w+\]\s*/g,'').trimEnd();
       // 키워드 기반 fallback (LLM 태그 없거나 none일 때)
       const suggestedTab = (llmTab && llmTab!=='none') ? llmTab : detectTab(q, cleanText) ?? undefined;
+      const extractedDate = extractDateFromQuestion(q);
+      const hasReport = extractedDate !== null
+        ? (REPORTS.some(r => r.date === extractedDate) || extractedDate === LATEST_ALARM.date)
+        : false;
+      const highlightedDate: string | undefined = (hasReport && extractedDate !== null) ? extractedDate : undefined;
       setHistory(h=>[...h,{role:"assistant",content:cleanText}]);
-      setMsgs(p=>[...p,{role:"assistant",content:cleanText,timestamp:nowTime(),source,suggestedTab}]);
+      setMsgs(p=>[...p,{role:"assistant",content:cleanText,timestamp:nowTime(),source,suggestedTab,highlightedDate}]);
     }catch(e){
       setMsgs(p=>[...p,{role:"assistant",content:"오류가 발생했습니다. 잠시 후 다시 시도해주세요.",timestamp:nowTime(),source:"error"}]);
     }finally{ setTyping(false); }
@@ -1788,6 +1849,7 @@ useEffect(()=>{
                           dbRcpData={dbRcpData}
                           dbScenarioData={dbScenarioData}
                           onNavigate={t=>setActiveTab(t as Tab)}
+                          highlightedDate={m.highlightedDate}
                         />
                       )}
                     </div>
