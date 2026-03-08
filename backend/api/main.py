@@ -36,6 +36,34 @@ async def lifespan(app: FastAPI):
         from backend.config.chroma_config import chroma_config
         count = chroma_config.count_reports()
 
+        def _has_kpi_metadata() -> bool:
+            """저장된 문서에 kpi 메타데이터가 있는지 확인"""
+            try:
+                sample = chroma_config.collection.get(limit=1, include=["metadatas"])
+                if sample["metadatas"]:
+                    return "kpi" in sample["metadatas"][0]
+            except Exception:
+                pass
+            return False
+
+        def _reindex_from_pdf():
+            """ChromaDB를 초기화하고 로컬 PDF로 재인덱싱"""
+            print("[ChromaDB] kpi 메타데이터 없음 → 컬렉션 초기화 후 재인덱싱")
+            try:
+                chroma_config.client.delete_collection(chroma_config.collection_name)
+                chroma_config.collection = chroma_config._get_or_create_collection()
+            except Exception as e:
+                print(f"[ChromaDB] 컬렉션 초기화 실패: {e}")
+            from backend.utils.load_reports_to_rag import load_reports_to_rag
+            load_reports_to_rag("backend/data/reports")
+            # 재인덱싱 후 S3 재백업
+            try:
+                from backend.utils.chromadb_s3_sync import sync_to_s3
+                sync_to_s3()
+                print("[ChromaDB] 재인덱싱 완료 → S3 재백업 완료")
+            except Exception as e:
+                print(f"[ChromaDB] S3 재백업 실패 (무시): {e}")
+
         if count == 0:
             # 1단계: S3 복원 시도
             try:
@@ -54,7 +82,13 @@ async def lifespan(app: FastAPI):
 
             print(f"[ChromaDB] 최종 리포트 수: {chroma_config.count_reports()}개")
         else:
-            print(f"[ChromaDB] 기존 데이터 {count}개 → 초기화 생략")
+            print(f"[ChromaDB] 기존 데이터 {count}개 확인")
+
+        # kpi 메타데이터 누락 시 자동 재인덱싱 (S3 구버전 데이터 대응)
+        if chroma_config.count_reports() > 0 and not _has_kpi_metadata():
+            _reindex_from_pdf()
+
+        print(f"[ChromaDB] 최종 리포트 수: {chroma_config.count_reports()}개")
     except Exception as e:
         print(f"[WARN] ChromaDB 초기화 실패 (무시하고 시작): {e}")
     yield
