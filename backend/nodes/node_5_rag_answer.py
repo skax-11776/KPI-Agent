@@ -71,18 +71,32 @@ def node_5_rag_answer(state: dict) -> dict:
     print("유사 리포트 검색 중...")
 
     try:
-        # Node 4에서 날짜 매칭으로 찾은 리포트 우선 사용
         already_found = state.get('similar_reports', [])
+        n = _get_search_count(question)
+        kpi_filter = _get_kpi_filter(question)
+        if kpi_filter:
+            print(f"   KPI 필터 적용: {kpi_filter}")
 
-        if already_found:
+        if already_found and kpi_filter:
+            # Node 4 결과에 KPI 필터 후처리 적용
+            kpi_val = kpi_filter.get("kpi", {})
+            eq_val = kpi_val.get("$eq")
+            in_val = kpi_val.get("$in", [])
+            allowed = {eq_val} if eq_val else set(in_val)
+            filtered = [r for r in already_found if r.get('metadata', {}).get('kpi') in allowed]
+            if filtered:
+                print(f"   Node 4 리포트 KPI 필터 후: {len(filtered)}개")
+                similar_reports = filtered
+            else:
+                # 필터 후 없으면 ChromaDB 직접 검색
+                print(f"   Node 4 결과 KPI 불일치 → ChromaDB 직접 검색")
+                similar_reports = chroma_config.search_similar_reports(
+                    query_text=question, n_results=n, filter_metadata=kpi_filter
+                )
+        elif already_found:
             print(f"   Node 4 전달 리포트 사용: {already_found[0]['id']}")
             similar_reports = already_found
         else:
-            # 질문 유형에 따라 검색 수 결정
-            n = _get_search_count(question)
-            kpi_filter = _get_kpi_filter(question)
-            if kpi_filter:
-                print(f"   KPI 필터 적용: {kpi_filter}")
             print(f"   검색 개수: {n}개")
             similar_reports = chroma_config.search_similar_reports(
                 query_text=question,
