@@ -29,15 +29,15 @@ from backend.api.models import HealthResponse, ErrorResponse
 async def lifespan(app: FastAPI):
     """
     서버 시작 시 ChromaDB 초기화:
-    1단계: S3에서 복원 시도 (K8s/Linux 환경)
-    2단계: 여전히 비어있으면 로컬 PDF에서 로드 (로컬 개발 환경)
+    ChromaDB 바이너리 S3 동기화 방식 대신, 컨테이너 내 PDF에서 항상 직접 인덱싱.
+    - kpi 메타데이터 포함 여부로 재인덱싱 필요성 판단
+    - 데이터 없으면 무조건 PDF에서 로드
     """
     try:
         from backend.config.chroma_config import chroma_config
-        count = chroma_config.count_reports()
+        from backend.utils.load_reports_to_rag import load_reports_to_rag
 
         def _has_kpi_metadata() -> bool:
-            """저장된 문서에 kpi 메타데이터가 있는지 확인"""
             try:
                 sample = chroma_config.collection.get(limit=1, include=["metadatas"])
                 if sample["metadatas"]:
@@ -46,47 +46,25 @@ async def lifespan(app: FastAPI):
                 pass
             return False
 
-        def _reindex_from_pdf():
-            """ChromaDB를 초기화하고 로컬 PDF로 재인덱싱"""
-            print("[ChromaDB] kpi 메타데이터 없음 → 컬렉션 초기화 후 재인덱싱")
+        def _reindex():
+            print("[ChromaDB] 컬렉션 초기화 후 PDF 재인덱싱")
             try:
                 chroma_config.client.delete_collection(chroma_config.collection_name)
                 chroma_config.collection = chroma_config._get_or_create_collection()
             except Exception as e:
                 print(f"[ChromaDB] 컬렉션 초기화 실패: {e}")
-            from backend.utils.load_reports_to_rag import load_reports_to_rag
             load_reports_to_rag("backend/data/reports")
-            # 재인덱싱 후 S3 재백업
-            try:
-                from backend.utils.chromadb_s3_sync import sync_to_s3
-                sync_to_s3()
-                print("[ChromaDB] 재인덱싱 완료 → S3 재백업 완료")
-            except Exception as e:
-                print(f"[ChromaDB] S3 재백업 실패 (무시): {e}")
+
+        count = chroma_config.count_reports()
 
         if count == 0:
-            # 1단계: S3 복원 시도
-            try:
-                from backend.utils.chromadb_s3_sync import sync_from_s3
-                synced = sync_from_s3()
-                if synced > 0:
-                    chroma_config.collection = chroma_config._get_or_create_collection()
-            except Exception as e:
-                print(f"[ChromaDB] S3 복원 실패: {e}")
-
-            # 2단계: 여전히 비어있으면 로컬 PDF 로드
-            if chroma_config.count_reports() == 0:
-                print(f"[ChromaDB] 로컬 PDF에서 로드 시도 (backend/data/reports)")
-                from backend.utils.load_reports_to_rag import load_reports_to_rag
-                load_reports_to_rag("backend/data/reports")
-
-            print(f"[ChromaDB] 최종 리포트 수: {chroma_config.count_reports()}개")
+            print("[ChromaDB] 데이터 없음 → PDF에서 인덱싱")
+            load_reports_to_rag("backend/data/reports")
+        elif not _has_kpi_metadata():
+            print("[ChromaDB] kpi 메타데이터 누락 감지 → 재인덱싱")
+            _reindex()
         else:
-            print(f"[ChromaDB] 기존 데이터 {count}개 확인")
-
-        # kpi 메타데이터 누락 시 자동 재인덱싱 (S3 구버전 데이터 대응)
-        if chroma_config.count_reports() > 0 and not _has_kpi_metadata():
-            _reindex_from_pdf()
+            print(f"[ChromaDB] 정상 데이터 {count}개 (kpi 메타데이터 확인됨)")
 
         print(f"[ChromaDB] 최종 리포트 수: {chroma_config.count_reports()}개")
     except Exception as e:
